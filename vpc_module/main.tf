@@ -58,7 +58,7 @@ locals {
 resource "aws_nat_gateway" "nat_gw" {
   for_each = local.eip_ids
   allocation_id = each.value
-  subnet_id     = aws_subnet.sub["pub_a_1"].id
+  # subnet_id     = aws_subnet.sub["pub_c_2"].id
 
   tags = {
     Name = "${var.pjt_name}_nat_gw_${each.key}"
