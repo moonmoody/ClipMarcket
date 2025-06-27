@@ -8,3 +8,9 @@ variable "seoul_vpc_cidr" {
   type = string
   description = "VPC에서 사용할 CIDR"
 }
+variable "seoul_subnets" {
+   type = map(object({
+    cidr = string
+    az   = string
+  }))
+}

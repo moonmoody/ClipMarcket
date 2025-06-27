@@ -16,3 +16,14 @@ resource "aws_internet_gateway" "gw" {
     Name = "${var.pjt_name}_gw"
   }
 }
+
+resource "aws_subnet" "sub" {
+  for_each = var.subnets
+  vpc_id     = aws_vpc.vpc.id
+  cidr_block = each.value.cidr
+
+  tags = {
+    Name = "${var.pjt_name}_${each.key}_sub"
+  }
+}
+

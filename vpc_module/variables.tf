@@ -6,3 +6,9 @@ variable "vpc_cidr" {
   type = string
   description = "VPC의 CIDR"
 }
+variable "subnets" {
+   type = map(object({
+    cidr = string
+    az   = string
+  }))
+}
