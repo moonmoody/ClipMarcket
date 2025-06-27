@@ -60,7 +60,7 @@ locals {
 resource "aws_nat_gateway" "nat_gw" {
   for_each = local.eip_ids
   allocation_id = each.value
-  subnet_id     = local.public_subnet_ids_by_az[each.value]
+  subnet_id     = local.public_subnet_ids_by_az[each.key]
 
   tags = {
     Name = "${var.pjt_name}_nat_gw_${each.key}"
