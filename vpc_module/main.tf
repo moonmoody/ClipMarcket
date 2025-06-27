@@ -1,3 +1,4 @@
+# VPC Create
 resource "aws_vpc" "vpc" {
   cidr_block       = var.vpc_cidr
 
@@ -17,6 +18,7 @@ resource "aws_internet_gateway" "gw" {
   }
 }
 
+# Subnet Create
 resource "aws_subnet" "sub" {
   for_each = var.subnets
   vpc_id     = aws_vpc.vpc.id
@@ -28,3 +30,72 @@ resource "aws_subnet" "sub" {
   }
 }
 
+locals {
+  sub_ids = {
+    for az, sub in aws_subnet.sub : az => sub.id
+  }
+}
+
+
+# Eip & Nat GW Create
+resource "aws_eip" "eip" {
+  for_each = toset(var.nat_gw_azs)
+  domain   = "vpc"
+
+  tags = {
+    Name = "${var.pjt_name}_eip_${each.value}"
+  }
+
+  depends_on = [aws_internet_gateway.gw]
+}
+
+locals {
+  eip_ids = {
+    for az, eip in aws_eip.eip : az => eip.id
+  }
+}
+
+resource "aws_nat_gateway" "nat_gw" {
+  for_each = local.eip_ids
+  allocation_id = each.value
+  subnet_id     = aws_subnet.sub["pub_a_1"].id
+
+  tags = {
+    Name = "${var.pjt_name}_nat_gw_${each.key}"
+  }
+
+  depends_on = [aws_internet_gateway.gw]
+}
+
+
+# # Route Table Create
+# resource "aws_route_table" "pub_route_tb" {
+#   vpc_id = aws_vpc.vpc.id
+
+#   route {
+#     cidr_block = "0.0.0.0"
+#     gateway_id = aws_internet_gateway.gw.id
+#   }
+  
+#   route {
+#     cidr_block = "0.0.0.0"
+#     nat_gateway_id = aws_nat_gateway.nat_gw.id
+#   }
+
+#   tags = {
+#     Name = "${var.pjt_name}_pub_rt"
+#   }
+# }
+
+# resource "aws_route_table" "pri_route_tb" {
+#   vpc_id = aws_vpc.vpc.id
+
+#   route {
+#     cidr_block = "0.0.0.0"
+#     nat_gateway_id = aws_nat_gateway.nat_gw.id
+#   }
+
+#   tags = {
+#     Name = "${var.pjt_name}_pri_rt"
+#   }
+# }

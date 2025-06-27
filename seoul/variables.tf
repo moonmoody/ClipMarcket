@@ -14,3 +14,6 @@ variable "seoul_subnets" {
     az   = string
   }))
 }
+variable "seoul_nat_gw_azs" {
+   type = list(string)
+}
