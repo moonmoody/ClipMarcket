@@ -31,8 +31,10 @@ resource "aws_subnet" "sub" {
 }
 
 locals {
-  sub_ids = {
-    for az, sub in aws_subnet.sub : az => sub.id
+  public_subnet_ids_by_az = {
+    for name, subnet in var.subnets :
+    subnet.az => aws_subnet.sub[name].id
+    if startswith(name, "pub_")
   }
 }
 
@@ -58,7 +60,7 @@ locals {
 resource "aws_nat_gateway" "nat_gw" {
   for_each = local.eip_ids
   allocation_id = each.value
-  subnet_id     = aws_subnet.sub["pub_a_1"].id
+  subnet_id     = local.public_subnet_ids_by_az[each.value]
 
   tags = {
     Name = "${var.pjt_name}_nat_gw_${each.key}"
