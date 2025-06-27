@@ -9,3 +9,7 @@ seoul/.terraform/environment
 virginia/.terraform/modules/modules.json
 virginia/.terraform/providers/registry.terraform.io/hashicorp/aws/6.0.0/windows_386/LICENSE.txt
 virginia/.terraform/providers/registry.terraform.io/hashicorp/aws/6.0.0/windows_386/terraform-provider-aws_v6.0.0_x5.exe
+virginia/terraform.tfstate.d/virginia/terraform.tfstate
+virginia/terraform.tfstate.d/virginia/.terraform.tfstate.lock.info
+seoul/terraform.tfstate.d/seoul/.terraform.tfstate.lock.info
+seoul/terraform.tfstate.d/seoul/terraform.tfstate
