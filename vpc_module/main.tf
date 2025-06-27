@@ -21,6 +21,7 @@ resource "aws_subnet" "sub" {
   for_each = var.subnets
   vpc_id     = aws_vpc.vpc.id
   cidr_block = each.value.cidr
+  availability_zone = each.value.az
 
   tags = {
     Name = "${var.pjt_name}_${each.key}_sub"
