@@ -27,6 +27,9 @@ seoul_subnets = {
     az   = "ap-northeast-2c"
   }
 }
-
+seoul_nat_gw_azs = [
+  "ap-northeast-2a", 
+  "ap-northeast-2c"
+]
 
 
