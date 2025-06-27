@@ -14,3 +14,6 @@ variable "virginia_subnets" {
     az   = string
   }))
 }
+variable "virginia_nat_gw_azs" {
+   type = list(string)
+}

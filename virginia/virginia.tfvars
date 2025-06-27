@@ -18,5 +18,8 @@ virginia_subnets = {
     cidr = "10.20.40.0/24"
     az   = "us-east-1c"
   }  
-  
 }
+virginia_nat_gw_azs = [
+  "us-east-1a", 
+  "us-east-1c"
+]
