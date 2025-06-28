@@ -5,15 +5,15 @@ variable "virginia_pjt_name" {
   description = "프로젝트 이름"
 }
 variable "virginia_vpc_cidr" {
-  type = string
+  type        = string
   description = "VPC에서 사용할 CIDR"
 }
 variable "virginia_subnets" {
-   type = map(object({
+  type = map(object({
     cidr = string
     az   = string
   }))
 }
 variable "virginia_nat_gw_azs" {
-   type = list(string)
+  type = map(any)
 }

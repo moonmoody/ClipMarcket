@@ -13,5 +13,5 @@ variable "subnets" {
   }))
 }
 variable "nat_gw_azs" {
-   type = list(string)
+   type = map
 }
