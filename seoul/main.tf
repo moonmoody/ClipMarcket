@@ -16,6 +16,8 @@ module "seoul_instance" {
   vpc_sub_ids = module.seoul_vpc.sub_ids
   vpc_id      = module.seoul_vpc.vpc_id
   nat_gw      = module.seoul_vpc.nat_gw
+  sub_ids     = values(module.seoul_vpc.sub_ids)
+  subnets     = var.seoul_subnets 
 
   providers = {
     aws = aws.seoul

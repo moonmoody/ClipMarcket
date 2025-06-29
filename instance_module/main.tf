@@ -1,8 +1,26 @@
-# git push test
 locals {
   pub_sub_key_by_id = {
     for key, subnet in var.vpc_sub_ids : key => subnet if startswith(key, "pub_")
   }
+}
+
+locals {
+  # pub_으로 시작하는 서브넷만 추출
+  pub_subnet_map = {
+    for key, id in var.sub_ids : key => id if startswith(key, "pub_")
+  }
+
+  # AZ별로 1개씩만 고르기 (예: 2a, 2c 중복 제거)
+  pub_subnet_ids_by_az = {
+    for az, pair in {
+      for key, id in local.pub_subnet_map : var.subnets[key].az => {
+        key = key
+        id  = id
+      }
+    } : az => pair.id
+  }
+
+  pub_subnet_ids = values(local.pub_subnet_ids_by_az)  # ALB에 넣을 list(string)
 }
 
 # 가장 최신의 Amazon Linux 2 AMI를 동적으로 찾아오기
@@ -21,8 +39,23 @@ data "aws_ami" "latest_linux" {
   }
 }
 
+# 가장 최신의 Amazon Ubuntu AMI를 동적으로 찾아오기
+# data "aws_ami" "latest_ubuntu" {
+#   most_recent = true
+#   owners      = ["099720109477"]
 
+#   filter {
+#     name   = "name"
+#     values = ["ubuntu/images/hvm-ssd/ubuntu-22.04-amd64-server-*"]
+#   }
 
+#   filter {
+#     name   = "virtualization-type"
+#     values = ["hvm"]
+#   }
+# }
+
+# 프록시 서버 키페어는 없어도 무방함
 resource "aws_key_pair" "pub_key" {
   key_name   = "pub_key"
   public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCA1wGQwHj1YsyndGjKZzDWU/lbwhiisVg11U7o3XFkjoV57M207pMjVdk0cGdismABfpq1amJrZ6P+QSzKqu+FHdebZar8C+oe1iwGgJwol5+IPt1vTmryYG+1XoAvmJNZjzY56WlmIZLYmG+VybHGd/OItO6hES/KjHP5FRnTptO1v77nb/EXUfA/WyJPr47Fb9y70jxSt+/0T4Hv397ZLVpenTWN59O8VI5ekjMyWIBwkxL9liFq2EJyTgJKy6dL3VBAQnDh4Ouh2oflD6pwbSD3HLwbDFHh/ChHi97TZ6mvO5bj3EzBP5Nwg5tSSjUosI89GDdnuu+4vv/ubRjn rsa-key-20250629"
@@ -79,145 +112,73 @@ resource "aws_instance" "pub_instance" {
   depends_on = [var.nat_gw]
 }
 
+# Create Target Group
+resource "aws_lb_target_group" "pub_sg_tg" {
+  name     = "web-alb-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = var.vpc_id
+}
 
+# Attachment Target Group 
+resource "aws_lb_target_group_attachment" "pub_tg_web_att" {
+  for_each = aws_instance.pub_instance
+  target_group_arn = aws_lb_target_group.pub_sg_tg.arn
+  target_id        = each.value.id
+  port             = 80
+}
 
+# Create Listener
+resource "aws_lb_listener" "pub_web_listener" {
+  load_balancer_arn = aws_lb.pub_alb.arn
+  port              = "80"
+  protocol          = "HTTP"
 
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.pub_sg_tg.arn
+  }
+}
 
+# Create alb for Public Subnet
+resource "aws_lb" "pub_alb" {
+  name               = "${var.pjt_name}-pub-alb"
+  internal           = false                                
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.pub_alb_sg.id]
+  subnets            = local.pub_subnet_ids                 
 
+  enable_deletion_protection = false
 
-# Web Node1 인스턴스 생성
-# resource "aws_instance" "web_node1" {
-#   ami                         = var.ami_id
-#   instance_type               = "t3.medium"
-#   subnet_id                   = var.subnet_ids
-#   vpc_security_group_ids      = [var.security_group_id]
-#   associate_public_ip_address = true
+  tags = {
+    Name = "${var.pjt_name}-pub-alb"
+  }
+}
 
-#   # user_data = <<-EOF
-#   # #!/bin/bash
-#   # set -euo pipefail
+# ALB Security Group
+resource "aws_security_group" "pub_alb_sg" {
+  name        = "${var.pjt_name}-alb-sg"
+  description = "Allow HTTP inbound traffic"
+  vpc_id      = var.vpc_id
 
-#   # # 1) 스왑 비활성화
-#   # swapoff -a
-#   # sed -i '/ swap / s/^/#/' /etc/fstab
+  ingress {
+    description = "Allow HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-#   # # 2) 필수 패키지
-#   # apt-get update && apt-get install -y \
-#   #   apt-transport-https \
-#   #   ca-certificates \
-#   #   curl \
-#   #   gnupg \
-#   #   lsb-release \
-#   #   software-properties-common
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-#   # # 3) Docker & containerd
-#   # curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-#   # add-apt-repository \
-#   #   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-#   #   $(lsb_release -cs) stable"
-#   # apt-get update
-#   # apt-get install -y docker-ce docker-ce-cli containerd.io
-
-#   # mkdir -p /etc/containerd
-#   # containerd config default > /etc/containerd/config.toml
-#   # systemctl restart containerd
-#   # systemctl enable containerd
-#   # systemctl enable docker
-
-#   # # 4) Kubernetes (kubeadm, kubelet, kubectl)
-#   # curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-#   # echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" \
-#   #   > /etc/apt/sources.list.d/kubernetes.list
-#   # apt-get update
-#   # apt-get install -y kubelet kubeadm kubectl
-#   # apt-mark hold kubelet kubeadm kubectl
-#   # systemctl enable kubelet
-
-#   # # 5) 재시그널
-#   # systemctl daemon-reexec
-
-#   # # 로그 위치 확인: /var/log/cloud-init-output.log
-#   # EOF  
-
-#   tags = {
-#     Name = "${var.pjt_name}_web_node-1"
-#   }
-# }
-
-
-# Web Node2 인스턴스 생성
-# resource "aws_instance" "web_node2" {
-#   ami                         = var.ami_id
-#   instance_type               = "t3.medium"
-#   subnet_id                   = var.subnet_ids
-#   vpc_security_group_ids      = [var.security_group_id]
-#   associate_public_ip_address = true
-
-#   user_data = <<-EOF
-#   #!/bin/bash
-#   set -euo pipefail
-
-#   # 1) 스왑 비활성화
-#   swapoff -a
-#   sed -i '/ swap / s/^/#/' /etc/fstab
-
-#   # 2) 필수 패키지
-#   apt-get update && apt-get install -y \
-#     apt-transport-https \
-#     ca-certificates \
-#     curl \
-#     gnupg \
-#     lsb-release \
-#     software-properties-common
-
-#   # 3) Docker & containerd
-#   curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-#   add-apt-repository \
-#     "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-#     $(lsb_release -cs) stable"
-#   apt-get update
-#   apt-get install -y docker-ce docker-ce-cli containerd.io
-
-#   mkdir -p /etc/containerd
-#   containerd config default > /etc/containerd/config.toml
-#   systemctl restart containerd
-#   systemctl enable containerd
-#   systemctl enable docker
-
-#   # 4) Kubernetes (kubeadm, kubelet, kubectl)
-#   curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-#   echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" \
-#     > /etc/apt/sources.list.d/kubernetes.list
-#   apt-get update
-#   apt-get install -y kubelet kubeadm kubectl
-#   apt-mark hold kubelet kubeadm kubectl
-#   systemctl enable kubelet
-
-#   # 5) 재시그널
-#   systemctl daemon-reexec
-
-#   # 로그 위치 확인: /var/log/cloud-init-output.log
-#   EOF  
-
-#   tags = {
-#     Name = "${var.pjt_name}_web_node-2"
-#   }
-# }
-
-# 각 리전 main.tf 파일에 데이터 블록 넣기
-# 최신 Ubuntu ami 가져오기
-# data "aws_ami" "ubuntu" {
-#   most_recent = true
-#   owners      = ["099720109477"]
-
-#   filter {
-#     name   = "name"
-#     values = ["ubuntu/images/hvm-ssd/ubuntu-22.04-amd64-server-*"]
-#   }
-
-#   filter {
-#     name   = "virtualization-type"
-#     values = ["hvm"]
-#   }
-# }
+  tags = {
+    Name = "${var.pjt_name}-alb-sg"
+  }
+}
 
