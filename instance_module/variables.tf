@@ -2,12 +2,26 @@ variable "pjt_name" {
   type        = string
   description = "프로젝트 명"
 }
-variable "ami_id"{
+
+variable "vpc_sub_ids" {
+  type = map(any)
+}
+
+variable "vpc_id" {
   type = string
 }
-variable "subnet_ids" {
-  type = list
+
+variable "nat_gw" {
+  type = map(any)
 }
-variable "security_group_id" {
-  type = string
-}
+
+
+# variable "ami_id"{
+#   type = string
+# }
+
+
+
+# variable "security_group_id" {
+#   type = string
+# }

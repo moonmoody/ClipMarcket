@@ -17,7 +17,7 @@ locals {
 
 # VPC Create
 resource "aws_vpc" "vpc" {
-  cidr_block       = var.vpc_cidr
+  cidr_block = var.vpc_cidr
 
   enable_dns_support   = true
   enable_dns_hostnames = true
@@ -37,9 +37,9 @@ resource "aws_internet_gateway" "gw" {
 
 # Subnet Create
 resource "aws_subnet" "sub" {
-  for_each = var.subnets
-  vpc_id     = aws_vpc.vpc.id
-  cidr_block = each.value.cidr
+  for_each          = var.subnets
+  vpc_id            = aws_vpc.vpc.id
+  cidr_block        = each.value.cidr
   availability_zone = each.value.az
 
   tags = {
@@ -60,7 +60,7 @@ resource "aws_eip" "eip" {
 }
 
 resource "aws_nat_gateway" "nat_gw" {
-  for_each = local.eip_ids
+  for_each      = local.eip_ids
   allocation_id = each.value
   subnet_id     = local.pub_subnet_ids_by_az[each.key]
 
@@ -102,13 +102,13 @@ resource "aws_route_table" "pri_route_tb" {
 }
 
 resource "aws_route_table_association" "pub_rt_ass" {
-  for_each = local.pub_subnet_ids_by_az
+  for_each       = local.pub_subnet_ids_by_az
   subnet_id      = each.value
   route_table_id = aws_route_table.pub_route_tb.id
 }
 
 resource "aws_route_table_association" "pri_rt_ass" {
-  for_each = local.pri_subnet_ids_by_az
+  for_each       = local.pri_subnet_ids_by_az
   subnet_id      = each.value
   route_table_id = aws_route_table.pri_route_tb[each.key].id
 }

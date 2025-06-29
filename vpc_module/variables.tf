@@ -3,15 +3,15 @@ variable "pjt_name" {
   description = "프로젝트 명"
 }
 variable "vpc_cidr" {
-  type = string
+  type        = string
   description = "VPC의 CIDR"
 }
 variable "subnets" {
-   type = map(object({
+  type = map(object({
     cidr = string
     az   = string
   }))
 }
 variable "nat_gw_azs" {
-   type = map
+  type = map(any)
 }

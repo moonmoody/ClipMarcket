@@ -14,3 +14,8 @@ output "nat_gw_azs" {
 output "pri_sub_info" {
   value = module.verginia_vpc.pri_sub_info
 }
+
+output "vpc_sub_ids" {
+  description = "생성된 서브넷 ID"
+  value       = module.verginia_vpc.sub_ids
+}
