@@ -2,6 +2,9 @@ locals {
   pub_sub_key_by_ids = {
     for key, subnet in var.vpc_sub_key_by_ids : key => subnet if startswith(key, "pub_")
   }
+  pri_sub_key_by_ids = {
+    for key, subnet in var.vpc_sub_key_by_ids : key => subnet if startswith(key, "pri_")
+  }
 
   # AZ별로 1개씩만 고르기 (예: 2a, 2c 중복 제거)
   pub_subnet_ids_by_az = {
@@ -14,6 +17,62 @@ locals {
   }
 
   pub_subnet_ids = values(local.pub_subnet_ids_by_az)  # ALB에 넣을 list(string)
+
+  pri_subnet_ids_by_az = {
+    for az, pair in {
+      for key, id in local.pri_sub_key_by_ids : var.subnets[key].az => {
+        key = key
+        id  = id
+      }
+    } : az => pair.id
+  }
+
+  pri_subnet_ids = values(local.pri_subnet_ids_by_az)  # ALB에 넣을 list(string)
+
+  common_ingress_rules2 = {
+    "icmp" = { protocol = "icmp", from_port = -1, to_port = -1, cidr = "0.0.0.0/0" }
+  }
+  pub_only_rules = {
+    "http"  = { protocol = "tcp", from_port = 80,  to_port = 80,  cidr = "0.0.0.0/0" },
+    "https" = { protocol = "tcp", from_port = 443, to_port = 443, cidr = "0.0.0.0/0" },
+  }
+  pri_only_rules = {
+    "ssh" = { protocol = "tcp", from_port = 22, to_port = 22, cidr = "0.0.0.0/0" },
+  }
+  rules_by_tier = {
+    "pub" = merge(local.common_ingress_rules2, local.pub_only_rules)
+    "pri" = merge(local.common_ingress_rules2, local.pri_only_rules)
+  }
+  all_ingress_rules = {
+    for rule_key, rule in {
+      for sg_key, rules in local.rules_by_tier : sg_key => rules
+    } : rule_key => rule
+    # for sg_key, rules in local.rules_by_tier : sg_key => rules
+    # for rule_key, rule in rules :
+    #   sg_key => {
+    #     sg_id         = aws_security_group.sg[sg_key].id
+    #     protocol      = rules.protocol
+    #     from_port     = rules.from_port
+    #     to_port       = rules.to_port
+    #     cidr          = rules.cidr
+    # }
+  }
+
+  common_ingress_rules = {
+    "icmp"  = { protocol = "icmp", port = -1 },
+    "http"  = { protocol = "tcp",  port = 80 },
+    "https" = { protocol = "tcp",  port = 443 },
+    "ssh"   = { protocol = "tcp",  port = 22 }
+  }
+  all_rule_combinations = setproduct(keys(aws_security_group.sg), keys(local.common_ingress_rules))
+  ingress_rule_definitions = {
+    for pair in local.all_rule_combinations :
+    "${pair[0]}-${pair[1]}" => {
+      sg_id    = aws_security_group.sg[pair[0]].id
+      protocol = local.common_ingress_rules[pair[1]].protocol
+      port     = local.common_ingress_rules[pair[1]].port
+    }
+  }
 }
 
 # 가장 최신의 Amazon Linux 2 AMI를 동적으로 찾아오기
@@ -56,34 +115,30 @@ resource "aws_key_pair" "pub_key" {
 
 
 # Security Group Create
-resource "aws_security_group" "sg_pub" {
-  name        = "sg_pub"
-  description = "sg_pub"
+resource "aws_security_group" "sg" {
+  for_each = toset(["pub", "pri"])
+  name        = "sg_${each.key}"
   vpc_id      = var.vpc_id
 
   tags = {
-    Name = "${var.pjt_name}_sg_pub"
+    Name = "${var.pjt_name}_sg_${each.key}"
   }
 }
 
-resource "aws_vpc_security_group_ingress_rule" "sg_pub_ingress" {
-  for_each = {
-    "icmp" : "-1",
-    "http" : "80",
-    "https" : "443",
-    "ssh" : "22"
-  }
-  security_group_id = aws_security_group.sg_pub.id
+resource "aws_vpc_security_group_ingress_rule" "sg_ingress" {
+  for_each = local.ingress_rule_definitions
+  security_group_id = each.value.sg_id
   cidr_ipv4         = "0.0.0.0/0"
-  from_port         = each.value
-  ip_protocol       = each.key != "icmp" ? "tcp" : each.key # icmp 이외에는 tcp로 인식시켜야 함.
-  to_port           = each.value
+  from_port         = each.value.port
+  to_port           = each.value.port
+  ip_protocol       = each.value.protocol
 }
 
-resource "aws_vpc_security_group_egress_rule" "sg_pub_egress" {
-  security_group_id = aws_security_group.sg_pub.id
+resource "aws_vpc_security_group_egress_rule" "sg_egress" {
+  for_each = aws_security_group.sg 
+  security_group_id = each.value.id 
   cidr_ipv4         = "0.0.0.0/0"
-  ip_protocol       = "-1"
+  ip_protocol       = "-1" 
 }
 
 # Instance Create
@@ -95,11 +150,27 @@ resource "aws_instance" "pub_instance" {
   instance_type               = "t2.micro"
   associate_public_ip_address = true
   subnet_id                   = each.value
-  vpc_security_group_ids      = [aws_security_group.sg_pub.id]
+  vpc_security_group_ids      = [aws_security_group.sg["pub"].id]
   key_name                    = "pub_key"
 
   tags = {
     Name = "${var.pjt_name}_pub_${regex("_([a-z])_", each.key)[0]}"
+  }
+
+  depends_on = [var.nat_gw]
+}
+
+# Seoul만 필요.
+resource "aws_instance" "pri_instance" {
+  for_each = local.pri_sub_key_by_ids
+  ami      = data.aws_ami.latest_linux.id
+  instance_type               = "t2.micro"
+  associate_public_ip_address = false
+  subnet_id                   = each.value
+  vpc_security_group_ids      = [aws_security_group.sg["pri"].id]
+
+  tags = {
+    Name = "${var.pjt_name}_pri_${regex("_([a-z])_", each.key)[0]}"
   }
 
   depends_on = [var.nat_gw]
@@ -112,11 +183,23 @@ resource "aws_lb_target_group" "pub_sg_tg" {
   protocol = "HTTP"
   vpc_id   = var.vpc_id
 }
+resource "aws_lb_target_group" "pri_tg" {
+  name     = "pri-alb-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = var.vpc_id
+}
 
 # Attachment Target Group 
 resource "aws_lb_target_group_attachment" "pub_tg_web_att" {
   for_each = aws_instance.pub_instance
   target_group_arn = aws_lb_target_group.pub_sg_tg.arn
+  target_id        = each.value.id
+  port             = 80
+}
+resource "aws_lb_target_group_attachment" "pri_tg_att" {
+  for_each = aws_instance.pri_instance
+  target_group_arn = aws_lb_target_group.pri_tg.arn
   target_id        = each.value.id
   port             = 80
 }
@@ -130,6 +213,16 @@ resource "aws_lb_listener" "pub_web_listener" {
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.pub_sg_tg.arn
+  }
+}
+resource "aws_lb_listener" "pri_alb_listener" {
+  load_balancer_arn = aws_lb.pri_alb.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.pri_tg.arn
   }
 }
 
@@ -147,10 +240,23 @@ resource "aws_lb" "pub_alb" {
     Name = "${var.pjt_name}-pub-alb"
   }
 }
+resource "aws_lb" "pri_alb" {
+  name               = "${var.pjt_name}-pri-alb"
+  internal           = false                                
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.pri_alb_sg.id]
+  subnets            = local.pri_subnet_ids                 
+
+  enable_deletion_protection = false
+
+  tags = {
+    Name = "${var.pjt_name}-pri-alb"
+  }
+}
 
 # ALB Security Group
 resource "aws_security_group" "pub_alb_sg" {
-  name        = "${var.pjt_name}-alb-sg"
+  name        = "${var.pjt_name}-pub-alb-sg"
   description = "Allow HTTP inbound traffic"
   vpc_id      = var.vpc_id
 
@@ -171,7 +277,32 @@ resource "aws_security_group" "pub_alb_sg" {
   }
 
   tags = {
-    Name = "${var.pjt_name}-alb-sg"
+    Name = "${var.pjt_name}-pub-alb-sg"
+  }
+}
+resource "aws_security_group" "pri_alb_sg" {
+  name        = "${var.pjt_name}-pri-alb-sg"
+  description = "Allow HTTP inbound traffic"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    description = "Allow HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.pjt_name}-pri-alb-sg"
   }
 }
 

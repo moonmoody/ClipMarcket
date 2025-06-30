@@ -23,3 +23,13 @@ output "vpc_sub_key_by_ids" {
 output "vpc_nat_gw" {
   value = module.seoul_vpc.nat_gw
 }
+
+output rules_by_tier {
+  value       = module.seoul_instance.rules_by_tier
+}
+output all_ingress_rules {
+  value       = module.seoul_instance.all_ingress_rules
+}
+# output all_a {
+#   value       = module.seoul_instance.all_a
+# }
