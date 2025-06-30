@@ -1,12 +1,15 @@
-output rules_by_tier {
-  value       = local.rules_by_tier
-}
-output all_ingress_rules {
-  value       = local.all_ingress_rules
-}
-# output all_a {
-#   value       = local.all_a
-# }
 output ingress_rule_config {
   value       = var.ingress_rule_config
 }
+
+
+output rule_lists {
+  value       = local.rule_lists
+}
+output flat_rule_list {
+  value       = local.flat_rule_list
+}
+output ingress_rules {
+  value       = local.ingress_rules
+}
+

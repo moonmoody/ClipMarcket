@@ -37,11 +37,23 @@ variable "ingress_rule_config" {
       to_port   = number
       cidr      = string
     }))
-    pri = map(object({
+    pri = optional(map(object({
       protocol  = string
       from_port = number
       to_port   = number
       cidr      = string
-    }))
+    })))
+    pri_1 = optional(map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    })))
+    pri_2 = optional(map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    })))
   })
 }

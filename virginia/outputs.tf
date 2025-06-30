@@ -22,3 +22,13 @@ output "sub_key_by_ids" {
 output ingress_rule_config {
   value       = var.virginia_ingress_rule_config
 }
+
+output rule_lists {
+  value       = module.virginia_instance.rule_lists
+}
+output flat_rule_list {
+  value       = module.virginia_instance.flat_rule_list
+}
+output ingress_rules {
+  value       = module.virginia_instance.ingress_rules
+}

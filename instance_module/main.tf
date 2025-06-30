@@ -28,38 +28,46 @@ locals {
   }
 
   pri_subnet_ids = values(local.pri_subnet_ids_by_az)  # ALB에 넣을 list(string)
+}
 
-  all_ingress_rules = {
-    for rule_key, rule in {
-      for sg_key, rules in var.ingress_rule_config: sg_key => rules
-    } : rule_key => rule
-    # for sg_key, rules in local.rules_by_tier : sg_key => rules
-    # for rule_key, rule in rules :
-    #   sg_key => {
-    #     sg_id         = aws_security_group.sg[sg_key].id
-    #     protocol      = rules.protocol
-    #     from_port     = rules.from_port
-    #     to_port       = rules.to_port
-    #     cidr          = rules.cidr
-    # }
+locals {
+  # null 값인 데이터 걸러내기
+  valid_rules = {
+    for sg_key, rules in var.ingress_rule_config : sg_key => rules if rules != null
   }
 
-  common_ingress_rules = {
-    "icmp"  = { protocol = "icmp", port = -1 },
-    "http"  = { protocol = "tcp",  port = 80 },
-    "https" = { protocol = "tcp",  port = 443 },
-    "ssh"   = { protocol = "tcp",  port = 22 }
-  }
-  all_rule_combinations = setproduct(keys(aws_security_group.sg), keys(local.common_ingress_rules))
-  ingress_rule_definitions = {
-    for pair in local.all_rule_combinations :
-    "${pair[0]}-${pair[1]}" => {
-      sg_id    = aws_security_group.sg[pair[0]].id
-      protocol = local.common_ingress_rules[pair[1]].protocol
-      port     = local.common_ingress_rules[pair[1]].port
+  # map은 중첩 for문이 불가능 하므로 [ [ ] ] 형태로 변환
+  # [ [ {pub 규칙1}, {pub 규칙2} ], [ {pri 규칙1}, {pri 규칙2} ] ]
+  rule_lists = [
+    for sg_key, rules in local.valid_rules : [
+      for rule_key, rule in rules : {
+        sg_key    = sg_key
+        rule_key  = rule_key
+        protocol  = rule.protocol
+        from_port = rule.from_port
+        to_port   = rule.to_port
+        cidr      = rule.cidr
+      }
+    ]
+  ]
+
+  # 중첩 리스트를 단일 리스트 구조로 변환
+  flat_rule_list = flatten(local.rule_lists)
+
+  ingress_rules = {
+    # [{데이터1}, {데이터2}, {데이터3}...] 을 item 에 setting
+    for item in local.flat_rule_list :
+    # 키 생성 (예시 "pub-http")
+    "${item.sg_key}-${item.rule_key}" => {
+      sg_id     = aws_security_group.sg[item.sg_key].id
+      protocol  = item.protocol
+      from_port = item.from_port
+      to_port   = item.to_port
+      cidr_ipv4 = item.cidr
     }
   }
 }
+
 
 # 가장 최신의 Amazon Linux 2 AMI를 동적으로 찾아오기
 data "aws_ami" "latest_linux" {
@@ -76,6 +84,9 @@ data "aws_ami" "latest_linux" {
     values = ["hvm"]
   }
 }
+
+# 현재 사용 중인 리전 데이터 가져오기
+data "aws_region" "current" {}
 
 # 가장 최신의 Amazon Ubuntu AMI를 동적으로 찾아오기
 # data "aws_ami" "latest_ubuntu" {
@@ -102,7 +113,7 @@ resource "aws_key_pair" "pub_key" {
 
 # Security Group Create
 resource "aws_security_group" "sg" {
-  for_each = toset(["pub", "pri"])
+  for_each = data.aws_region.current.name == "ap-northeast-2" ? toset(["pub", "pri_1", "pri_2"]) : toset(["pub", "pri"])
   name        = "sg_${each.key}"
   vpc_id      = var.vpc_id
 
@@ -112,11 +123,11 @@ resource "aws_security_group" "sg" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "sg_ingress" {
-  for_each = local.ingress_rule_definitions
+  for_each = local.ingress_rules
   security_group_id = each.value.sg_id
-  cidr_ipv4         = "0.0.0.0/0"
-  from_port         = each.value.port
-  to_port           = each.value.port
+  cidr_ipv4         = each.value.cidr_ipv4
+  from_port         = each.value.from_port
+  to_port           = each.value.to_port
   ip_protocol       = each.value.protocol
 }
 
@@ -148,12 +159,12 @@ resource "aws_instance" "pub_instance" {
 
 # Seoul만 필요.
 resource "aws_instance" "pri_instance" {
-  for_each = local.pri_sub_key_by_ids
+  for_each = data.aws_region.current.name == "ap-northeast-2" ? local.pri_sub_key_by_ids : {}
   ami      = data.aws_ami.latest_linux.id
   instance_type               = "t2.micro"
   associate_public_ip_address = false
   subnet_id                   = each.value
-  vpc_security_group_ids      = [aws_security_group.sg["pri"].id]
+  vpc_security_group_ids      = data.aws_region.current.name == "ap-northeast-2" ? [aws_security_group.sg["pri_1"].id] : [aws_security_group.sg["pri"].id]
 
   tags = {
     Name = "${var.pjt_name}_pri_${regex("_([a-z])_", each.key)[0]}"
@@ -163,7 +174,7 @@ resource "aws_instance" "pri_instance" {
 }
 
 # Create Target Group
-resource "aws_lb_target_group" "pub_sg_tg" {
+resource "aws_lb_target_group" "pub_tg" {
   name     = "web-alb-tg"
   port     = 80
   protocol = "HTTP"
@@ -179,7 +190,7 @@ resource "aws_lb_target_group" "pri_tg" {
 # Attachment Target Group 
 resource "aws_lb_target_group_attachment" "pub_tg_web_att" {
   for_each = aws_instance.pub_instance
-  target_group_arn = aws_lb_target_group.pub_sg_tg.arn
+  target_group_arn = aws_lb_target_group.pub_tg.arn
   target_id        = each.value.id
   port             = 80
 }
@@ -191,14 +202,14 @@ resource "aws_lb_target_group_attachment" "pri_tg_att" {
 }
 
 # Create Listener
-resource "aws_lb_listener" "pub_web_listener" {
+resource "aws_lb_listener" "pub_web_alb_listener" {
   load_balancer_arn = aws_lb.pub_alb.arn
   port              = "80"
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.pub_sg_tg.arn
+    target_group_arn = aws_lb_target_group.pub_tg.arn
   }
 }
 resource "aws_lb_listener" "pri_alb_listener" {

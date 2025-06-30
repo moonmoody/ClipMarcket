@@ -24,16 +24,18 @@ output "vpc_nat_gw" {
   value = module.seoul_vpc.nat_gw
 }
 
-output rules_by_tier {
-  value       = module.seoul_instance.rules_by_tier
-}
-output all_ingress_rules {
-  value       = module.seoul_instance.all_ingress_rules
-}
-# output all_a {
-#   value       = module.seoul_instance.all_a
-# }
 
 output ingress_rule_config {
   value       = var.seoul_ingress_rule_config
+}
+
+
+output rule_lists {
+  value       = module.seoul_instance.rule_lists
+}
+output flat_rule_list {
+  value       = module.seoul_instance.flat_rule_list
+}
+output ingress_rules {
+  value       = module.seoul_instance.ingress_rules
 }
