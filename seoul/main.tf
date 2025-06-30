@@ -16,7 +16,8 @@ module "seoul_instance" {
   vpc_sub_key_by_ids = module.seoul_vpc.sub_key_by_ids
   vpc_id      = module.seoul_vpc.vpc_id
   nat_gw      = module.seoul_vpc.nat_gw
-  subnets     = var.seoul_subnets 
+  subnets     = var.seoul_subnets
+  ingress_rule_config = var.seoul_ingress_rule_config 
 
   providers = {
     aws = aws.seoul

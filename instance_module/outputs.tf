@@ -7,3 +7,6 @@ output all_ingress_rules {
 # output all_a {
 #   value       = local.all_a
 # }
+output ingress_rule_config {
+  value       = var.ingress_rule_config
+}

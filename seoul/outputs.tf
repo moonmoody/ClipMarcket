@@ -33,3 +33,7 @@ output all_ingress_rules {
 # output all_a {
 #   value       = module.seoul_instance.all_a
 # }
+
+output ingress_rule_config {
+  value       = var.seoul_ingress_rule_config
+}

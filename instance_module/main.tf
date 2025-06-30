@@ -29,23 +29,9 @@ locals {
 
   pri_subnet_ids = values(local.pri_subnet_ids_by_az)  # ALB에 넣을 list(string)
 
-  common_ingress_rules2 = {
-    "icmp" = { protocol = "icmp", from_port = -1, to_port = -1, cidr = "0.0.0.0/0" }
-  }
-  pub_only_rules = {
-    "http"  = { protocol = "tcp", from_port = 80,  to_port = 80,  cidr = "0.0.0.0/0" },
-    "https" = { protocol = "tcp", from_port = 443, to_port = 443, cidr = "0.0.0.0/0" },
-  }
-  pri_only_rules = {
-    "ssh" = { protocol = "tcp", from_port = 22, to_port = 22, cidr = "0.0.0.0/0" },
-  }
-  rules_by_tier = {
-    "pub" = merge(local.common_ingress_rules2, local.pub_only_rules)
-    "pri" = merge(local.common_ingress_rules2, local.pri_only_rules)
-  }
   all_ingress_rules = {
     for rule_key, rule in {
-      for sg_key, rules in local.rules_by_tier : sg_key => rules
+      for sg_key, rules in var.ingress_rule_config: sg_key => rules
     } : rule_key => rule
     # for sg_key, rules in local.rules_by_tier : sg_key => rules
     # for rule_key, rule in rules :

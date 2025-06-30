@@ -22,3 +22,27 @@ variable "seoul_nat_gw_azs" {
   type = map(any)
 }
 
+variable "seoul_ingress_rule_config" {
+  description = "보안 그룹에 적용할 Ingress 규칙"
+  type = object({
+    # common = map(object({
+    #   protocol  = string
+    #   from_port = number
+    #   to_port   = number
+    #   cidr      = string
+    # }))
+    pub = map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    }))
+    pri = map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    }))
+  })
+}
+
