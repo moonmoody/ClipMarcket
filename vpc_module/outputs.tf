@@ -19,18 +19,19 @@ output "pri_sub_info" {
 
 
 # 실제 사용할 data
-output "sub_ids" {
-  description = "생성된 서브넷 ID"
+output "sub_key_by_ids" {
+  # type = map(object)
+  description = "'pub_a_1' = 'subnet-0790b974529ff1ba7' 이런 형식의 데이터"
   value = {
     for key, subnet in aws_subnet.sub : key => subnet.id
   }
 }
 
 output "vpc_id" {
+  # type = string
   value = aws_vpc.vpc.id
 }
 
 output "nat_gw" {
   value = aws_nat_gateway.nat_gw
 }
-

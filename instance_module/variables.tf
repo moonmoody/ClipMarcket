@@ -3,7 +3,7 @@ variable "pjt_name" {
   description = "프로젝트 명"
 }
 
-variable "vpc_sub_ids" {
+variable "vpc_sub_key_by_ids" {
   type = map(any)
 }
 

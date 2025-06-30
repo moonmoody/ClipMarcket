@@ -1,6 +1,6 @@
 locals {
-  pub_sub_key_by_id = {
-    for key, subnet in var.vpc_sub_ids : key => subnet if startswith(key, "pub_")
+  pub_sub_key_by_ids = {
+    for key, subnet in var.vpc_sub_key_by_ids : key => subnet if startswith(key, "pub_")
   }
 }
 
@@ -61,7 +61,7 @@ resource "aws_vpc_security_group_egress_rule" "sg_pub_egress" {
 
 # Instance Create
 resource "aws_instance" "pub_instance" {
-  for_each = local.pub_sub_key_by_id
+  for_each = local.pub_sub_key_by_ids
   ami      = data.aws_ami.latest_linux.id
   # ami                         = "ami-000ec6c25978d5999"         # 버지니아 ami
   # ami                         = "ami-0daee08993156ca1a"        # 서울 ami

@@ -13,7 +13,7 @@ module "seoul_vpc" {
 module "seoul_instance" {
   source      = "../instance_module"
   pjt_name    = var.seoul_pjt_name
-  vpc_sub_ids = module.seoul_vpc.sub_ids
+  vpc_sub_key_by_ids = module.seoul_vpc.sub_key_by_ids
   vpc_id      = module.seoul_vpc.vpc_id
   nat_gw      = module.seoul_vpc.nat_gw
 

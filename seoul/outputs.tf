@@ -15,7 +15,11 @@ output "pri_sub_info" {
   value = module.seoul_vpc.pri_sub_info
 }
 
-output "vpc_sub_ids" {
-  description = "생성된 서브넷 ID"
-  value       = module.seoul_vpc.sub_ids
+output "vpc_sub_key_by_ids" {
+  description = "'pub_a_1' = 'subnet-0790b974529ff1ba7' 이런 형식의 데이터"
+  value       = module.seoul_vpc.sub_key_by_ids
+}
+
+output "vpc_nat_gw" {
+  value = module.seoul_vpc.nat_gw
 }
