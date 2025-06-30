@@ -16,8 +16,6 @@ output "pri_sub_info" {
   value = local.pri_subnet_ids_by_az
 }
 
-
-
 # 실제 사용할 data
 output "sub_key_by_ids" {
   # type = map(object)

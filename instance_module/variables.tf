@@ -15,12 +15,17 @@ variable "nat_gw" {
   type = map(any)
 }
 
+variable "subnets" {
+  type = map(object({
+    cidr = string
+    az = string
+  }))
+}
+
 
 # variable "ami_id"{
 #   type = string
 # }
-
-
 
 # variable "security_group_id" {
 #   type = string
