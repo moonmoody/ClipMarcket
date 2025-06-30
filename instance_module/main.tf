@@ -2,18 +2,11 @@ locals {
   pub_sub_key_by_id = {
     for key, subnet in var.vpc_sub_ids : key => subnet if startswith(key, "pub_")
   }
-}
-
-locals {
-  # pub_으로 시작하는 서브넷만 추출
-  pub_subnet_map = {
-    for key, id in var.sub_ids : key => id if startswith(key, "pub_")
-  }
 
   # AZ별로 1개씩만 고르기 (예: 2a, 2c 중복 제거)
   pub_subnet_ids_by_az = {
     for az, pair in {
-      for key, id in local.pub_subnet_map : var.subnets[key].az => {
+      for key, id in local.pub_sub_key_by_id : var.subnets[key].az => {
         key = key
         id  = id
       }

@@ -15,11 +15,6 @@ variable "nat_gw" {
   type = map(any)
 }
 
-variable "sub_ids" {
-  description = "퍼블릭 ALB가 사용할 서브넷 ID 목록"
-  type        = list(string)
-}
-
 variable "subnets" {
   type = map(object({
     cidr = string

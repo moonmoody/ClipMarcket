@@ -20,3 +20,4 @@ seoul/terraform.tfstate
 seoul/terraform.tfstate.backup
 virginia/terraform.tfstate.backup
 virginia/terraform.tfstate
+virginia/.terraform.tfstate.lock.info

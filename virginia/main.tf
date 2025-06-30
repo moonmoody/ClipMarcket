@@ -1,4 +1,4 @@
-module "verginia_vpc" {
+module "virginia_vpc" {
   source     = "../vpc_module"
   pjt_name   = var.virginia_pjt_name
   vpc_cidr   = var.virginia_vpc_cidr
@@ -10,12 +10,13 @@ module "verginia_vpc" {
   }
 }
 
-module "verginia_instance" {
+module "virginia_instance" {
   source      = "../instance_module"
   pjt_name    = var.virginia_pjt_name
-  vpc_sub_ids = module.verginia_vpc.sub_ids
-  vpc_id      = module.verginia_vpc.vpc_id
-  nat_gw      = module.verginia_vpc.nat_gw
+  vpc_sub_ids = module.virginia_vpc.sub_ids
+  vpc_id      = module.virginia_vpc.vpc_id
+  nat_gw      = module.virginia_vpc.nat_gw
+  subnets     = var.virginia_subnets 
 
   providers = {
     aws = aws.virginia

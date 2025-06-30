@@ -16,8 +16,6 @@ output "pri_sub_info" {
   value = local.pri_subnet_ids_by_az
 }
 
-
-
 # 실제 사용할 data
 output "sub_ids" {
   description = "생성된 서브넷 ID"
