@@ -17,7 +17,8 @@ module "virginia_instance" {
   vpc_id      = module.virginia_vpc.vpc_id
   nat_gw      = module.virginia_vpc.nat_gw
   subnets     = var.virginia_subnets
-  ingress_rule_config = var.virginia_ingress_rule_config 
+  ingress_rule_config = var.virginia_ingress_rule_config
+  egress_rule_config = var.virginia_egress_rule_config
 
   providers = {
     aws = aws.virginia

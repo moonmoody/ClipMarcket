@@ -30,6 +30,7 @@ locals {
   pri_subnet_ids = values(local.pri_subnet_ids_by_az)  # ALB에 넣을 list(string)
 }
 
+# sg ingress data
 locals {
   # null 값인 데이터 걸러내기
   valid_rules = {
@@ -58,6 +59,36 @@ locals {
     # [{데이터1}, {데이터2}, {데이터3}...] 을 item 에 setting
     for item in local.flat_rule_list :
     # 키 생성 (예시 "pub-http")
+    "${item.sg_key}-${item.rule_key}" => {
+      sg_id     = aws_security_group.sg[item.sg_key].id
+      protocol  = item.protocol
+      from_port = item.from_port
+      to_port   = item.to_port
+      cidr_ipv4 = item.cidr
+    }
+  }
+}
+
+# sg egress data
+locals {
+  valid_e_rules = {
+    for sg_key, rules in var.egress_rule_config : sg_key => rules if rules != null
+  }
+  e_rule_lists = [
+    for sg_key, rules in local.valid_e_rules : [
+      for rule_key, rule in rules : {
+        sg_key    = sg_key
+        rule_key  = rule_key
+        protocol  = rule.protocol
+        from_port = rule.from_port
+        to_port   = rule.to_port
+        cidr      = rule.cidr
+      }
+    ]
+  ]
+  flat_e_rule_list = flatten(local.e_rule_lists)
+  egress_rules = {
+    for item in local.flat_e_rule_list :
     "${item.sg_key}-${item.rule_key}" => {
       sg_id     = aws_security_group.sg[item.sg_key].id
       protocol  = item.protocol
@@ -132,10 +163,12 @@ resource "aws_vpc_security_group_ingress_rule" "sg_ingress" {
 }
 
 resource "aws_vpc_security_group_egress_rule" "sg_egress" {
-  for_each = aws_security_group.sg 
-  security_group_id = each.value.id 
-  cidr_ipv4         = "0.0.0.0/0"
-  ip_protocol       = "-1" 
+  for_each = local.egress_rules
+  security_group_id = each.value.sg_id
+  cidr_ipv4         = each.value.cidr_ipv4
+  from_port         = each.value.from_port
+  to_port           = each.value.to_port
+  ip_protocol       = each.value.protocol
 }
 
 # Instance Create

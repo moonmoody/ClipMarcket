@@ -37,3 +37,11 @@ virginia_ingress_rule_config = {
     "ssh" = { protocol = "tcp", from_port = "22", to_port = "22", cidr = "0.0.0.0/0" },
   }
 }
+virginia_egress_rule_config = {
+  pub = {
+    "all" = { protocol = "-1", from_port = "0", to_port = "0", cidr = "0.0.0.0/0" }
+  }
+  pri = {
+    "all" = { protocol = "-1", from_port = "0", to_port = "0", cidr = "0.0.0.0/0" }
+  }
+}

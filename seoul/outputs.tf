@@ -39,3 +39,6 @@ output flat_rule_list {
 output ingress_rules {
   value       = module.seoul_instance.ingress_rules
 }
+output egress_rules {
+  value       = module.seoul_instance.egress_rules
+}

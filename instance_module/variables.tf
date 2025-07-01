@@ -57,3 +57,32 @@ variable "ingress_rule_config" {
     })))
   })
 }
+variable "egress_rule_config" {
+  description = "보안 그룹에 적용할 egress 규칙"
+  type = object({
+    pub = map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    }))
+    pri = optional(map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    })))
+    pri_1 = optional(map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    })))
+    pri_2 = optional(map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    })))
+  })
+}

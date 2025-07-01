@@ -18,6 +18,7 @@ module "seoul_instance" {
   nat_gw      = module.seoul_vpc.nat_gw
   subnets     = var.seoul_subnets
   ingress_rule_config = var.seoul_ingress_rule_config 
+  egress_rule_config = var.seoul_egress_rule_config 
 
   providers = {
     aws = aws.seoul

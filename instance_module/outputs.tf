@@ -12,4 +12,7 @@ output flat_rule_list {
 output ingress_rules {
   value       = local.ingress_rules
 }
+output egress_rules {
+  value       = local.egress_rules
+}
 

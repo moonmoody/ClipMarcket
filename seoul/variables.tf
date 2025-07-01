@@ -51,4 +51,27 @@ variable "seoul_ingress_rule_config" {
     }))
   })
 }
+variable "seoul_egress_rule_config" {
+  description = "보안 그룹에 적용할 egress 규칙"
+  type = object({
+    pub = map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    }))
+    pri_1 = map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    }))
+    pri_2 = map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    }))
+  })
+}
 
