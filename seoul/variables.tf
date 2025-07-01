@@ -49,6 +49,12 @@ variable "seoul_ingress_rule_config" {
       to_port   = number
       cidr      = string
     }))
+    bastion = map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    }))
   })
 }
 variable "seoul_egress_rule_config" {
@@ -67,6 +73,12 @@ variable "seoul_egress_rule_config" {
       cidr      = string
     }))
     pri_2 = map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    }))
+    bastion = map(object({
       protocol  = string
       from_port = number
       to_port   = number

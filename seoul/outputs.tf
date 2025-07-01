@@ -42,3 +42,7 @@ output ingress_rules {
 output egress_rules {
   value       = module.seoul_instance.egress_rules
 }
+
+output pri_sub_key_by_ids {
+  value       = module.seoul_instance.pri_sub_key_by_ids
+}

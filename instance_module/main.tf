@@ -144,7 +144,7 @@ resource "aws_key_pair" "pub_key" {
 
 # Security Group Create
 resource "aws_security_group" "sg" {
-  for_each = data.aws_region.current.name == "ap-northeast-2" ? toset(["pub", "pri_1", "pri_2"]) : toset(["pub", "pri"])
+  for_each = data.aws_region.current.name == "ap-northeast-2" ? toset(["pub", "pri_1", "pri_2", "bastion"]) : toset(["pub", "pri", "bastion"])
   name        = "sg_${each.key}"
   vpc_id      = var.vpc_id
 
@@ -191,12 +191,15 @@ resource "aws_instance" "pub_instance" {
 }
 
 # Seoul 리전에서만 생성.
+# 프록시 서버 private instance
 resource "aws_instance" "pri_instance" {
   for_each = data.aws_region.current.name == "ap-northeast-2" ? local.pri_sub_key_by_ids : {}
   ami      = data.aws_ami.latest_linux.id
   instance_type               = "t2.micro"
   associate_public_ip_address = false
   subnet_id                   = each.value
+  # 여기에 오류 있음. pri_1, pri_2 에 맞는 sg가 각각 들어가야 됌. -2025.07.01-
+  # virginia에는 거기에 맞는 걸로 들어가야함. -2025.07.01-
   vpc_security_group_ids      = data.aws_region.current.name == "ap-northeast-2" ? [aws_security_group.sg["pri_1"].id] : [aws_security_group.sg["pri"].id]
 
   tags = {
@@ -349,3 +352,58 @@ resource "aws_security_group" "pri_alb_sg" {
   }
 }
 
+
+# Private instance ssm role
+# iam 생성
+# Global 디렉토리로 옮길 예정.
+resource "aws_iam_role" "ssm_role" {
+  name        = "bastion-ssm-role"
+  path        = "/"
+  description = "Bastion Instance policy"
+
+  assume_role_policy  = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [
+      {
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      },
+    ]
+  })
+
+  tags = {
+    Name = "bastion-ssm-role"
+  }
+}
+
+# iam에 역할 설정
+resource "aws_iam_role_policy_attachment" "ssm_policy_att" {
+  role       = aws_iam_role.ssm_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+# instance에서 사용할 수 있게 해주는 설정.
+resource "aws_iam_instance_profile" "ssm_instance_profile" {
+  name = "bastion-ssm-instance-profile"
+  role = aws_iam_role.ssm_role.name
+}
+
+resource "aws_instance" "pri_bastion" {
+  # for_each = data.aws_region.current.name == "ap-northeast-2" ? local.pri_sub_key_by_ids : {}
+  ami      = data.aws_ami.latest_linux.id
+  instance_type               = "t2.micro"
+  associate_public_ip_address = false
+  subnet_id                   = local.pri_sub_key_by_ids.pri_a_3
+  # vpc_security_group_ids      = data.aws_region.current.name == "ap-northeast-2" ? [aws_security_group.sg["pri_1"].id] : [aws_security_group.sg["pri"].id]
+  vpc_security_group_ids      = [aws_security_group.sg["bastion"].id]
+  iam_instance_profile = aws_iam_instance_profile.ssm_instance_profile.name
+
+  tags = {
+    Name = "${var.pjt_name}_pri_bastion"
+  }
+
+  depends_on = [var.nat_gw]
+}

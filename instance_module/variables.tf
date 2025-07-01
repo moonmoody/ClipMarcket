@@ -55,6 +55,12 @@ variable "ingress_rule_config" {
       to_port   = number
       cidr      = string
     })))
+    bastion = optional(map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    })))
   })
 }
 variable "egress_rule_config" {
@@ -79,6 +85,12 @@ variable "egress_rule_config" {
       cidr      = string
     })))
     pri_2 = optional(map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    })))
+    bastion = optional(map(object({
       protocol  = string
       from_port = number
       to_port   = number

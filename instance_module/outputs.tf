@@ -15,4 +15,7 @@ output ingress_rules {
 output egress_rules {
   value       = local.egress_rules
 }
+output pri_sub_key_by_ids {
+  value       = local.pri_sub_key_by_ids
+}
 
