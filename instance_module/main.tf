@@ -157,7 +157,7 @@ resource "aws_instance" "pub_instance" {
   depends_on = [var.nat_gw]
 }
 
-# Seoul만 필요.
+# Seoul 리전에서만 생성.
 resource "aws_instance" "pri_instance" {
   for_each = data.aws_region.current.name == "ap-northeast-2" ? local.pri_sub_key_by_ids : {}
   ami      = data.aws_ami.latest_linux.id
@@ -180,12 +180,7 @@ resource "aws_lb_target_group" "pub_tg" {
   protocol = "HTTP"
   vpc_id   = var.vpc_id
 }
-resource "aws_lb_target_group" "pri_tg" {
-  name     = "pri-alb-tg"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = var.vpc_id
-}
+
 
 # Attachment Target Group 
 resource "aws_lb_target_group_attachment" "pub_tg_web_att" {
@@ -194,12 +189,7 @@ resource "aws_lb_target_group_attachment" "pub_tg_web_att" {
   target_id        = each.value.id
   port             = 80
 }
-resource "aws_lb_target_group_attachment" "pri_tg_att" {
-  for_each = aws_instance.pri_instance
-  target_group_arn = aws_lb_target_group.pri_tg.arn
-  target_id        = each.value.id
-  port             = 80
-}
+
 
 # Create Listener
 resource "aws_lb_listener" "pub_web_alb_listener" {
@@ -210,16 +200,6 @@ resource "aws_lb_listener" "pub_web_alb_listener" {
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.pub_tg.arn
-  }
-}
-resource "aws_lb_listener" "pri_alb_listener" {
-  load_balancer_arn = aws_lb.pri_alb.arn
-  port              = "80"
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.pri_tg.arn
   }
 }
 
@@ -235,19 +215,6 @@ resource "aws_lb" "pub_alb" {
 
   tags = {
     Name = "${var.pjt_name}-pub-alb"
-  }
-}
-resource "aws_lb" "pri_alb" {
-  name               = "${var.pjt_name}-pri-alb"
-  internal           = false                                
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.pri_alb_sg.id]
-  subnets            = local.pri_subnet_ids                 
-
-  enable_deletion_protection = false
-
-  tags = {
-    Name = "${var.pjt_name}-pri-alb"
   }
 }
 
@@ -277,7 +244,53 @@ resource "aws_security_group" "pub_alb_sg" {
     Name = "${var.pjt_name}-pub-alb-sg"
   }
 }
+
+# Private Load Balancer
+# Seoul 리전에서만 생성.
+resource "aws_lb_target_group" "pri_tg" {
+  count = data.aws_region.current.name == "ap-northeast-2" ? 1 : 0
+  name     = "pri-alb-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = var.vpc_id
+}
+
+resource "aws_lb_target_group_attachment" "pri_tg_att" {
+  for_each = data.aws_region.current.name == "ap-northeast-2" ? aws_instance.pri_instance : {}
+  target_group_arn = aws_lb_target_group.pri_tg[0].arn
+  target_id        = each.value.id
+  port             = 80
+}
+
+resource "aws_lb_listener" "pri_alb_listener" {
+  count = data.aws_region.current.name == "ap-northeast-2" ? 1 : 0
+  load_balancer_arn = aws_lb.pri_alb[0].arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.pri_tg[0].arn
+  }
+}
+
+resource "aws_lb" "pri_alb" {
+  count = data.aws_region.current.name == "ap-northeast-2" ? 1 : 0
+  name               = "${var.pjt_name}-pri-alb"
+  internal           = false                                
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.pri_alb_sg[0].id]
+  subnets            = local.pri_subnet_ids                 
+
+  enable_deletion_protection = false
+
+  tags = {
+    Name = "${var.pjt_name}-pri-alb"
+  }
+}
+
 resource "aws_security_group" "pri_alb_sg" {
+  count = data.aws_region.current.name == "ap-northeast-2" ? 1 : 0
   name        = "${var.pjt_name}-pri-alb-sg"
   description = "Allow HTTP inbound traffic"
   vpc_id      = var.vpc_id
