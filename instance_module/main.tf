@@ -68,6 +68,10 @@ locals {
       cidr_ipv4 = item.cidr
     }
   }
+
+  rules_only_key = distinct ([
+    for item in local.flat_rule_list : item.sg_key
+  ])
 }
 
 # sg egress data
@@ -129,7 +133,7 @@ resource "aws_key_pair" "pub_key" {
 
 # Security Group Create
 resource "aws_security_group" "sg" {
-  for_each = data.aws_region.current.name == "ap-northeast-2" ? toset(["pub", "proxy", "bastion", "aurora"]) : toset(["pub", "bastion", "aurora"])
+  for_each = toset(local.rules_only_key)
   name        = "sg_${each.key}"
   vpc_id      = var.vpc_id
 
@@ -199,7 +203,7 @@ resource "aws_instance" "pri_bastion" {
   associate_public_ip_address = false
   subnet_id                   = local.pri_sub_key_by_ids.pri_a_3
   vpc_security_group_ids      = [aws_security_group.sg["bastion"].id]
-  # 얘를 global에서 가져오게끔 수정 필요.
+  # 추후에 global에서 가져와서 주입하는 형식으로 수정 필요.
   # iam_instance_profile        = aws_iam_instance_profile.ssm_instance_profile.name
   iam_instance_profile        = var.ssm_instance_profile_name_from_global
 

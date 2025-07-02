@@ -46,3 +46,11 @@ output "egress_rules" {
 output "pri_sub_key_by_ids" {
   value = module.seoul_instance.pri_sub_key_by_ids
 }
+
+output rules_only_key {
+  value       = module.seoul_instance.rules_only_key
+}
+
+output valid_rules {
+  value       = module.seoul_instance.valid_rules
+}

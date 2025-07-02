@@ -1,6 +1,5 @@
 # Private instance ssm role
 # iam 생성
-# Global 디렉토리로 옮길 예정.
 resource "aws_iam_role" "ssm_role" {
   name        = "bastion-ssm-role"
   path        = "/"
