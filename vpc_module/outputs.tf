@@ -33,3 +33,11 @@ output "vpc_id" {
 output "nat_gw" {
   value = aws_nat_gateway.nat_gw
 }
+
+output "pri_sub_ids" {
+  # type = map(object)
+  description = "private subnet id가 list 형태로 담긴 데이터"
+  value = [
+    for key, subnet in aws_subnet.sub : subnet.id if startswith(key, "pri_")
+  ]
+}

@@ -25,24 +25,24 @@ output "vpc_nat_gw" {
 }
 
 
-output ingress_rule_config {
-  value       = var.seoul_ingress_rule_config
+output "ingress_rule_config" {
+  value = var.seoul_ingress_rule_config
 }
 
 
-output rule_lists {
-  value       = module.seoul_instance.rule_lists
+output "rule_lists" {
+  value = module.seoul_instance.rule_lists
 }
-output flat_rule_list {
-  value       = module.seoul_instance.flat_rule_list
+output "flat_rule_list" {
+  value = module.seoul_instance.flat_rule_list
 }
-output ingress_rules {
-  value       = module.seoul_instance.ingress_rules
+output "ingress_rules" {
+  value = module.seoul_instance.ingress_rules
 }
-output egress_rules {
-  value       = module.seoul_instance.egress_rules
+output "egress_rules" {
+  value = module.seoul_instance.egress_rules
 }
 
-output pri_sub_key_by_ids {
-  value       = module.seoul_instance.pri_sub_key_by_ids
+output "pri_sub_key_by_ids" {
+  value = module.seoul_instance.pri_sub_key_by_ids
 }

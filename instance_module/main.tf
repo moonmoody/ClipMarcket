@@ -3,8 +3,8 @@ locals {
     for key, subnet in var.vpc_sub_key_by_ids : key => subnet if startswith(key, "pub_")
   }
   pri_sub_key_by_ids = {
-    # for key, subnet in var.vpc_sub_key_by_ids : key => subnet if data.aws_region.current.name == "ap-northeast-2" ? startswith(key, "pri_") : startswith(key, "pri_a_3")
-    for key, subnet in var.vpc_sub_key_by_ids : key => subnet if startswith(key, "pri_")
+    for key, subnet in var.vpc_sub_key_by_ids : key => subnet if data.aws_region.current.name == "ap-northeast-2" ? startswith(key, "pri_") : startswith(key, "pri_a_3")
+    # for key, subnet in var.vpc_sub_key_by_ids : key => subnet if startswith(key, "pri_")
   }
 
   # AZ별로 1개씩만 고르기 (예: 2a, 2c 중복 제거)
@@ -192,6 +192,24 @@ resource "aws_instance" "pri_instance" {
   depends_on = [var.nat_gw]
 }
 
+# bastion_ iam(SSManagedInstanceCore) 권한을 가진 instance 
+resource "aws_instance" "pri_bastion" {
+  ami      = data.aws_ami.latest_linux.id
+  instance_type               = "t2.micro"
+  associate_public_ip_address = false
+  subnet_id                   = local.pri_sub_key_by_ids.pri_a_3
+  vpc_security_group_ids      = [aws_security_group.sg["bastion"].id]
+  # 얘를 global에서 가져오게끔 수정 필요.
+  # iam_instance_profile        = aws_iam_instance_profile.ssm_instance_profile.name
+  iam_instance_profile        = var.ssm_instance_profile_name_from_global
+
+  tags = {
+    Name = "${var.pjt_name}_pri_bastion"
+  }
+
+  depends_on = [var.nat_gw]
+}
+
 # Create Target Group
 resource "aws_lb_target_group" "pub_tg" {
   name     = "web-alb-tg"
@@ -336,57 +354,3 @@ resource "aws_security_group" "pri_alb_sg" {
 }
 
 
-# Private instance ssm role
-# iam 생성
-# Global 디렉토리로 옮길 예정.
-resource "aws_iam_role" "ssm_role" {
-  name        = "bastion-ssm-role"
-  path        = "/"
-  description = "Bastion Instance policy"
-
-  assume_role_policy  = jsonencode({
-    Version   = "2012-10-17"
-    Statement = [
-      {
-        Action    = "sts:AssumeRole"
-        Effect    = "Allow"
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-      },
-    ]
-  })
-
-  tags = {
-    Name = "bastion-ssm-role"
-  }
-}
-
-# iam에 역할 설정
-resource "aws_iam_role_policy_attachment" "ssm_policy_att" {
-  role       = aws_iam_role.ssm_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
-# instance에서 사용할 수 있게 해주는 설정.
-resource "aws_iam_instance_profile" "ssm_instance_profile" {
-  name = "bastion-ssm-instance-profile"
-  role = aws_iam_role.ssm_role.name
-}
-
-resource "aws_instance" "pri_bastion" {
-  # for_each = data.aws_region.current.name == "ap-northeast-2" ? local.pri_sub_key_by_ids : {}
-  ami      = data.aws_ami.latest_linux.id
-  instance_type               = "t2.micro"
-  associate_public_ip_address = false
-  subnet_id                   = local.pri_sub_key_by_ids.pri_a_3
-  # vpc_security_group_ids      = data.aws_region.current.name == "ap-northeast-2" ? [aws_security_group.sg["pri_1"].id] : [aws_security_group.sg["pri"].id]
-  vpc_security_group_ids      = [aws_security_group.sg["bastion"].id]
-  iam_instance_profile = aws_iam_instance_profile.ssm_instance_profile.name
-
-  tags = {
-    Name = "${var.pjt_name}_pri_bastion"
-  }
-
-  depends_on = [var.nat_gw]
-}

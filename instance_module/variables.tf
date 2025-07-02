@@ -80,3 +80,7 @@ variable "egress_rule_config" {
     })))
   })
 }
+
+variable "ssm_instance_profile_name_from_global" {
+  type = string
+}
