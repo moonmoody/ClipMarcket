@@ -38,13 +38,13 @@ module "seoul_instance" {
   }
 }
 
-module "seoul_tgw" {
-  source                                = "../transit_gw_module"
-  pjt_name                              = var.seoul_pjt_name
-  vpc_id                                = module.seoul_vpc.vpc_id
-  pri_sub_ids                           = module.seoul_vpc.pri_sub_ids
+# module "seoul_tgw" {
+#   source                                = "../transit_gw_module"
+#   pjt_name                              = var.seoul_pjt_name
+#   vpc_id                                = module.seoul_vpc.vpc_id
+#   pri_sub_ids                           = module.seoul_vpc.pri_sub_ids
 
-  providers = {
-    aws = aws.seoul
-  }
-}
+#   providers = {
+#     aws = aws.seoul
+#   }
+# }

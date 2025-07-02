@@ -10,6 +10,6 @@ terraform {
 
 # 프로바이더
 provider "aws" {
-  alias  = "global"
+  # alias  = "global"
   region = "ap-northeast-2"
 }

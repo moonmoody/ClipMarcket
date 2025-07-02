@@ -26,3 +26,15 @@ module "virginia_instance" {
     aws = aws.virginia
   }
 }
+
+# module "virginia_tgw" {
+#   source                                = "../transit_gw_module"
+#   pjt_name                              = var.virginia_pjt_name
+#   vpc_id                                = module.virginia_vpc.vpc_id
+#   pri_sub_ids                           = module.virginia_vpc.pri_sub_ids
+
+#   providers = {
+#     aws = aws.virginia
+#   }
+# }
+
