@@ -3,6 +3,7 @@ locals {
     for key, subnet in var.vpc_sub_key_by_ids : key => subnet if startswith(key, "pub_")
   }
   pri_sub_key_by_ids = {
+    # for key, subnet in var.vpc_sub_key_by_ids : key => subnet if data.aws_region.current.name == "ap-northeast-2" ? startswith(key, "pri_") : startswith(key, "pri_a_3")
     for key, subnet in var.vpc_sub_key_by_ids : key => subnet if startswith(key, "pri_")
   }
 
@@ -119,22 +120,6 @@ data "aws_ami" "latest_linux" {
 # 현재 사용 중인 리전 데이터 가져오기
 data "aws_region" "current" {}
 
-# 가장 최신의 Amazon Ubuntu AMI를 동적으로 찾아오기
-# data "aws_ami" "latest_ubuntu" {
-#   most_recent = true
-#   owners      = ["099720109477"]
-
-#   filter {
-#     name   = "name"
-#     values = ["ubuntu/images/hvm-ssd/ubuntu-22.04-amd64-server-*"]
-#   }
-
-#   filter {
-#     name   = "virtualization-type"
-#     values = ["hvm"]
-#   }
-# }
-
 # 프록시 서버 키페어는 없어도 무방함
 resource "aws_key_pair" "pub_key" {
   key_name   = "pub_key"
@@ -144,7 +129,7 @@ resource "aws_key_pair" "pub_key" {
 
 # Security Group Create
 resource "aws_security_group" "sg" {
-  for_each = data.aws_region.current.name == "ap-northeast-2" ? toset(["pub", "pri_1", "pri_2", "bastion"]) : toset(["pub", "pri", "bastion"])
+  for_each = data.aws_region.current.name == "ap-northeast-2" ? toset(["pub", "proxy", "bastion", "aurora"]) : toset(["pub", "bastion", "aurora"])
   name        = "sg_${each.key}"
   vpc_id      = var.vpc_id
 
@@ -198,9 +183,7 @@ resource "aws_instance" "pri_instance" {
   instance_type               = "t2.micro"
   associate_public_ip_address = false
   subnet_id                   = each.value
-  # 여기에 오류 있음. pri_1, pri_2 에 맞는 sg가 각각 들어가야 됌. -2025.07.01-
-  # virginia에는 거기에 맞는 걸로 들어가야함. -2025.07.01-
-  vpc_security_group_ids      = data.aws_region.current.name == "ap-northeast-2" ? [aws_security_group.sg["pri_1"].id] : [aws_security_group.sg["pri"].id]
+  vpc_security_group_ids      = data.aws_region.current.name == "ap-northeast-2" ? [aws_security_group.sg["proxy"].id] : []
 
   tags = {
     Name = "${var.pjt_name}_pri_${regex("_([a-z])_", each.key)[0]}"

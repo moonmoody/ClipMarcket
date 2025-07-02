@@ -20,19 +20,19 @@ variable "virginia_nat_gw_azs" {
 variable "virginia_ingress_rule_config" {
   description = "보안 그룹에 적용할 Ingress 규칙"
   type = object({
-    # common = map(object({
-    #   protocol  = string
-    #   from_port = number
-    #   to_port   = number
-    #   cidr      = string
-    # }))
     pub = map(object({
       protocol  = string
       from_port = number
       to_port   = number
       cidr      = string
     }))
-    pri = map(object({
+    bastion = map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    }))
+    aurora = map(object({
       protocol  = string
       from_port = number
       to_port   = number
@@ -41,7 +41,7 @@ variable "virginia_ingress_rule_config" {
   })
 }
 variable "virginia_egress_rule_config" {
-  description = "보안 그룹에 적용할 Ingress 규칙"
+  description = "보안 그룹에 적용할 egress 규칙"
   type = object({
     pub = map(object({
       protocol  = string
@@ -49,7 +49,13 @@ variable "virginia_egress_rule_config" {
       to_port   = number
       cidr      = string
     }))
-    pri = map(object({
+    bastion = map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = string
+    }))
+    aurora = map(object({
       protocol  = string
       from_port = number
       to_port   = number
