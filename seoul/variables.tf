@@ -31,24 +31,24 @@ variable "seoul_ingress_rule_config" {
       to_port   = number
       cidr      = string
     }))
-    proxy = map(object({
+    proxy = optional(map(object({
       protocol  = string
       from_port = number
       to_port   = number
       cidr      = string
-    }))
-    bastion = map(object({
+    })))
+    bastion = optional(map(object({
       protocol  = string
       from_port = number
       to_port   = number
       cidr      = string
-    }))
-    aurora = map(object({
+    })))
+    aurora = optional(map(object({
       protocol  = string
       from_port = number
       to_port   = number
       cidr      = string
-    }))
+    })))
   })
 }
 variable "seoul_egress_rule_config" {
@@ -60,24 +60,33 @@ variable "seoul_egress_rule_config" {
       to_port   = number
       cidr      = string
     }))
-    proxy = map(object({
+    proxy = optional(map(object({
       protocol  = string
       from_port = number
       to_port   = number
       cidr      = string
-    }))
-    bastion = map(object({
+    })))
+    bastion = optional(map(object({
       protocol  = string
       from_port = number
       to_port   = number
       cidr      = string
-    }))
-    aurora = map(object({
+    })))
+    aurora = optional(map(object({
       protocol  = string
       from_port = number
       to_port   = number
       cidr      = string
-    }))
+    })))
+  })
+}
+
+variable "seoul_pub_asg_config" {
+  description = "Auto Scaling Group 설정 값"
+  type = object({
+    desired_capacity = number
+    max_size         = number
+    min_size         = number
   })
 }
 

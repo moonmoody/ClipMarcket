@@ -54,3 +54,7 @@ output rules_only_key {
 output valid_rules {
   value       = module.seoul_instance.valid_rules
 }
+
+output pub_subnet_ids {
+  value       = module.seoul_instance.pub_subnet_ids
+}

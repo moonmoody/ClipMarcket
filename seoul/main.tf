@@ -32,6 +32,7 @@ module "seoul_instance" {
   egress_rule_config                    = var.seoul_egress_rule_config
   # ssm_instance_profile_name_from_global = data.terraform_remote_state.global_outputs.outputs.ssm_instance_profile_name
   ssm_instance_profile_name_from_global = "bastion-ssm-instance-profile"
+  pub_asg_config                        = var.seoul_pub_asg_config
 
   providers = {
     aws = aws.seoul

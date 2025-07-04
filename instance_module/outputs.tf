@@ -24,6 +24,9 @@ output rules_only_key {
 output valid_rules {
   value       = local.valid_rules
 }
+output pub_subnet_ids {
+  value       = local.pub_subnet_ids
+}
 
 
 

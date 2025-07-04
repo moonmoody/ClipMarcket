@@ -82,5 +82,15 @@ variable "egress_rule_config" {
 }
 
 variable "ssm_instance_profile_name_from_global" {
+  description = "iam 값"
   type = string
+}
+
+variable "pub_asg_config" {
+  description = "Auto Scaling Group 설정 값"
+  type = object({
+    desired_capacity = number
+    max_size         = number
+    min_size         = number
+  })
 }

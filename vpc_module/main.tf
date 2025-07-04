@@ -3,14 +3,10 @@ locals {
     for az, eip in aws_eip.eip : az => eip.id
   }
   pub_subnet_ids_by_az = {
-    for name, subnet in var.subnets :
-    subnet.az => aws_subnet.sub[name].id
-    if startswith(name, "pub_")
+    for name, subnet in var.subnets : subnet.az => aws_subnet.sub[name].id if startswith(name, "pub-")
   }
   pri_subnet_ids_by_az = {
-    for name, subnet in var.subnets :
-    subnet.az => aws_subnet.sub[name].id
-    if startswith(name, "pri_")
+    for name, subnet in var.subnets : subnet.az => aws_subnet.sub[name].id if startswith(name, "pri-")
   }
 }
 
@@ -23,7 +19,7 @@ resource "aws_vpc" "vpc" {
   enable_dns_hostnames = true
 
   tags = {
-    Name = "${var.pjt_name}_vpc"
+    Name = "${var.pjt_name}-vpc"
   }
 }
 
@@ -31,7 +27,7 @@ resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.vpc.id
 
   tags = {
-    Name = "${var.pjt_name}_gw"
+    Name = "${var.pjt_name}-gw"
   }
 }
 
@@ -43,7 +39,7 @@ resource "aws_subnet" "sub" {
   availability_zone = each.value.az
 
   tags = {
-    Name = "${var.pjt_name}_${each.key}_sub"
+    Name = "${var.pjt_name}-${each.key}-sub"
   }
 }
 
@@ -53,7 +49,7 @@ resource "aws_eip" "eip" {
   domain   = "vpc"
 
   tags = {
-    Name = "${var.pjt_name}_eip_${each.value}"
+    Name = "${var.pjt_name}-eip-${each.value}"
   }
 
   depends_on = [aws_internet_gateway.gw]
@@ -65,7 +61,7 @@ resource "aws_nat_gateway" "nat_gw" {
   subnet_id     = local.pub_subnet_ids_by_az[each.key]
 
   tags = {
-    Name = "${var.pjt_name}_nat_gw_${regexall("[a-z]$", each.key)[0]}"
+    Name = "${var.pjt_name}-nat-gw-${regexall("[a-z]$", each.key)[0]}"
   }
 
   depends_on = [aws_internet_gateway.gw]
@@ -82,7 +78,7 @@ resource "aws_route_table" "pub_route_tb" {
   }
 
   tags = {
-    Name = "${var.pjt_name}_pub_rt"
+    Name = "${var.pjt_name}-pub-rt"
   }
 }
 
@@ -97,7 +93,7 @@ resource "aws_route_table" "pri_route_tb" {
   }
 
   tags = {
-    Name = "${var.pjt_name}_pri_${each.value}_rt"
+    Name = "${var.pjt_name}-pri-${each.value}-rt"
   }
 }
 
