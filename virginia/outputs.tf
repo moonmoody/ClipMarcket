@@ -32,6 +32,6 @@ output "flat_rule_list" {
 output "ingress_rules" {
   value = module.virginia_instance.ingress_rules
 }
-output rules_only_key {
-  value       = module.virginia_instance.rules_only_key
-}
+# output rules_only_key {
+#   value       = module.virginia_instance.rules_only_key
+# }

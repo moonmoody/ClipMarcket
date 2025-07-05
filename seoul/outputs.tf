@@ -47,9 +47,9 @@ output "pri_sub_key_by_ids" {
   value = module.seoul_instance.pri_sub_key_by_ids
 }
 
-output rules_only_key {
-  value       = module.seoul_instance.rules_only_key
-}
+# output rules_only_key {
+#   value       = module.seoul_instance.rules_only_key
+# }
 
 output valid_rules {
   value       = module.seoul_instance.valid_rules
@@ -58,3 +58,8 @@ output valid_rules {
 output pub_subnet_ids {
   value       = module.seoul_instance.pub_subnet_ids
 }
+
+output all_sg_keys {
+  value       = module.seoul_instance.all_sg_keys
+}
+

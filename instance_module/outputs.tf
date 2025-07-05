@@ -18,14 +18,17 @@ output egress_rules {
 output pri_sub_key_by_ids {
   value       = local.pri_sub_key_by_ids
 }
-output rules_only_key {
-  value       = local.rules_only_key
-}
+# output rules_only_key {
+#   value       = local.rules_only_key
+# }
 output valid_rules {
   value       = local.valid_rules
 }
 output pub_subnet_ids {
   value       = local.pub_subnet_ids
+}
+output all_sg_keys {
+  value       = local.all_sg_keys
 }
 
 

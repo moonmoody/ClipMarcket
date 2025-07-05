@@ -69,9 +69,15 @@ locals {
     }
   }
 
-  rules_only_key = distinct ([
-    for item in local.flat_rule_list : item.sg_key
-  ])
+  # rules_only_key = distinct ([
+  #   for item in local.flat_rule_list : item.sg_key
+  # ])
+
+  # ingress와 egress에 있는 모든 key
+  all_sg_keys = toset(concat(
+    keys(var.ingress_rule_config),
+    keys(var.egress_rule_config)
+  ))
 }
 
 # sg egress data
@@ -133,7 +139,7 @@ resource "aws_key_pair" "pub_key" {
 
 # Security Group Create
 resource "aws_security_group" "sg" {
-  for_each = toset(local.rules_only_key)
+  for_each = local.all_sg_keys
   name        = "sg_${each.key}"
   vpc_id      = var.vpc_id
 
@@ -341,7 +347,10 @@ resource "aws_launch_template" "pub_lt" {
   instance_type = "t3.small"
   key_name      = aws_key_pair.pub_key.key_name
 
-  vpc_security_group_ids = [aws_security_group.sg["pub"].id]
+  network_interfaces {
+    associate_public_ip_address = true
+    security_groups  = [aws_security_group.sg["pub"].id]
+  }
 
   tag_specifications {
     resource_type = "instance"
