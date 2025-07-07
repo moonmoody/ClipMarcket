@@ -172,7 +172,7 @@ resource "aws_instance" "pri_instance" {
   for_each = data.aws_region.current.name == "ap-northeast-2" ? local.pri_sub_key_by_ids : {}
   ami      = data.aws_ami.latest_linux.id
   # instance_type               = "t4g.medium"
-  instance_type               = "t2.micro"
+  instance_type               = "t3.small"
   associate_public_ip_address = false
   subnet_id                   = each.value
   vpc_security_group_ids      = data.aws_region.current.name == "ap-northeast-2" ? [aws_security_group.sg["proxy"].id] : []
