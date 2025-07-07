@@ -27,6 +27,7 @@ module "seoul_instance" {
   vpc_sub_key_by_ids                    = module.seoul_vpc.sub_key_by_ids
   vpc_id                                = module.seoul_vpc.vpc_id
   nat_gw                                = module.seoul_vpc.nat_gw
+  pri_sub34_ids_by_az                   = module.seoul_vpc.pri_sub34_ids_by_az
   subnets                               = var.seoul_subnets
   ingress_rule_config                   = var.seoul_ingress_rule_config
   egress_rule_config                    = var.seoul_egress_rule_config
@@ -38,14 +39,3 @@ module "seoul_instance" {
     aws = aws.seoul
   }
 }
-
-# module "seoul_tgw" {
-#   source                                = "../transit_gw_module"
-#   pjt_name                              = var.seoul_pjt_name
-#   vpc_id                                = module.seoul_vpc.vpc_id
-#   pri_sub_ids                           = module.seoul_vpc.pri_sub_ids
-
-#   providers = {
-#     aws = aws.seoul
-#   }
-# }

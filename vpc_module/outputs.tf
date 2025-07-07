@@ -1,9 +1,4 @@
 # 단순 정보 확인
-output "local_pub_sub_info" {
-  value       = local.pub_subnet_ids_by_az
-  description = "local 확인"
-}
-
 output "eip_info" {
   value = aws_eip.eip
 }
@@ -12,8 +7,13 @@ output "nat_gw_azs" {
   value = var.nat_gw_azs
 }
 
-output "pri_sub_info" {
+output "pri_sub34_ids_by_az" {
   value = local.pri_subnet_ids_by_az
+}
+
+output "pub_sub_info" {
+  value       = local.pub_subnet_ids_by_az
+  description = "local 확인"
 }
 
 # 실제 사용할 data
@@ -40,4 +40,8 @@ output "pri_sub_ids" {
   value = [
     for key, subnet in aws_subnet.sub : subnet.id if startswith(key, "pri_")
   ]
+}
+
+output subnets {
+  value       = var.subnets
 }

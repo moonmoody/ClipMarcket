@@ -1,8 +1,3 @@
-output "vpc_local_pub_sub_info" {
-  value       = module.virginia_vpc.local_pub_sub_info
-  description = "local 확인"
-}
-
 output "vpc_eip_info" {
   value = module.virginia_vpc.eip_info
 }
@@ -11,8 +6,10 @@ output "nat_gw_azs" {
   value = module.virginia_vpc.nat_gw_azs
 }
 
-output "pri_sub_info" {
-  value = module.virginia_vpc.pri_sub_info
+
+output "pub_sub_info" {
+  value       = module.virginia_vpc.pub_sub_info
+  description = "local 확인"
 }
 
 output "sub_key_by_ids" {
@@ -32,6 +29,8 @@ output "flat_rule_list" {
 output "ingress_rules" {
   value = module.virginia_instance.ingress_rules
 }
-# output rules_only_key {
-#   value       = module.virginia_instance.rules_only_key
-# }
+
+
+output all_sg_keys {
+  value       = module.virginia_instance.all_sg_keys
+}

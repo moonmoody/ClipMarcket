@@ -16,6 +16,7 @@ module "virginia_instance" {
   vpc_sub_key_by_ids                    = module.virginia_vpc.sub_key_by_ids
   vpc_id                                = module.virginia_vpc.vpc_id
   nat_gw                                = module.virginia_vpc.nat_gw
+  pri_sub34_ids_by_az                   = module.virginia_vpc.pri_sub34_ids_by_az
   subnets                               = var.virginia_subnets
   ingress_rule_config                   = var.virginia_ingress_rule_config
   egress_rule_config                    = var.virginia_egress_rule_config
@@ -27,15 +28,4 @@ module "virginia_instance" {
     aws = aws.virginia
   }
 }
-
-# module "virginia_tgw" {
-#   source                                = "../transit_gw_module"
-#   pjt_name                              = var.virginia_pjt_name
-#   vpc_id                                = module.virginia_vpc.vpc_id
-#   pri_sub_ids                           = module.virginia_vpc.pri_sub_ids
-
-#   providers = {
-#     aws = aws.virginia
-#   }
-# }
 

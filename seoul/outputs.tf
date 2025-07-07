@@ -1,8 +1,3 @@
-output "vpc_local_pub_sub_info" {
-  value       = module.seoul_vpc.local_pub_sub_info
-  description = "local 확인"
-}
-
 output "vpc_eip_info" {
   value = module.seoul_vpc.eip_info
 }
@@ -11,8 +6,9 @@ output "nat_gw_azs" {
   value = module.seoul_vpc.nat_gw_azs
 }
 
-output "pri_sub_info" {
-  value = module.seoul_vpc.pri_sub_info
+output "pub_sub_info" {
+  value       = module.seoul_vpc.pub_sub_info
+  description = "local 확인"
 }
 
 output "vpc_sub_key_by_ids" {
@@ -43,14 +39,6 @@ output "egress_rules" {
   value = module.seoul_instance.egress_rules
 }
 
-output "pri_sub_key_by_ids" {
-  value = module.seoul_instance.pri_sub_key_by_ids
-}
-
-# output rules_only_key {
-#   value       = module.seoul_instance.rules_only_key
-# }
-
 output valid_rules {
   value       = module.seoul_instance.valid_rules
 }
@@ -63,3 +51,11 @@ output all_sg_keys {
   value       = module.seoul_instance.all_sg_keys
 }
 
+output subnets {
+  value       = module.seoul_vpc.subnets
+}
+
+
+output pri_subnet_ids {
+  value       = module.seoul_instance.pri_subnet_ids
+}

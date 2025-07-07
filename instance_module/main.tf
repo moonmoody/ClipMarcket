@@ -1,12 +1,30 @@
+# 가장 최신의 Amazon Linux 2 AMI를 동적으로 찾아오기
+data "aws_ami" "latest_linux" {
+  most_recent = true
+  owners      = ["amazon"] # AWS가 제공하는 공식 AMI
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
+# 현재 사용 중인 리전 데이터 가져오기
+data "aws_region" "current" {}
+
 locals {
   pub_sub_key_by_ids = {
     for key, subnet in var.vpc_sub_key_by_ids : key => subnet if startswith(key, "pub-")
   }
-  pri_sub_key_by_ids = {
-    for key, subnet in var.vpc_sub_key_by_ids : key => subnet if data.aws_region.current.name == "ap-northeast-2" ? startswith(key, "pri-") : startswith(key, "pri-a-3")
-    # for key, subnet in var.vpc_sub_key_by_ids : key => subnet if startswith(key, "pri_")
+  pri_sub34_key_by_ids = {
+    for key, subnet in var.vpc_sub_key_by_ids : key => subnet if data.aws_region.current.name == "ap-northeast-2" ? contains(["pri-a-3", "pri-c-4"], key) : startswith(key, "pri-a-3")
   }
-
+ 
   # AZ별로 1개씩만 고르기 (예: 2a, 2c 중복 제거)
   pub_subnet_ids_by_az = {
     for az, pair in {
@@ -16,19 +34,9 @@ locals {
       }
     } : az => pair.id
   }
-
   pub_subnet_ids = values(local.pub_subnet_ids_by_az)  # ALB에 넣을 list(string)
 
-  pri_subnet_ids_by_az = {
-    for az, pair in {
-      for key, id in local.pri_sub_key_by_ids : var.subnets[key].az => {
-        key = key
-        id  = id
-      }
-    } : az => pair.id
-  }
-
-  pri_subnet_ids = values(local.pri_subnet_ids_by_az)  # ALB에 넣을 list(string)
+  pri_subnet_ids = values(var.pri_sub34_ids_by_az)  # ALB에 넣을 list(string)
 }
 
 # sg ingress data
@@ -110,26 +118,6 @@ locals {
   }
 }
 
-
-# 가장 최신의 Amazon Linux 2 AMI를 동적으로 찾아오기
-data "aws_ami" "latest_linux" {
-  most_recent = true
-  owners      = ["amazon"] # AWS가 제공하는 공식 AMI
-
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
-# 현재 사용 중인 리전 데이터 가져오기
-data "aws_region" "current" {}
-
 # 프록시 서버 키페어는 없어도 무방함
 resource "aws_key_pair" "pub_key" {
   key_name   = "pub-key"
@@ -168,8 +156,8 @@ resource "aws_vpc_security_group_egress_rule" "sg_egress" {
 
 # Seoul 리전에서만 생성.
 # 프록시 서버 private instance
-resource "aws_instance" "pri_instance" {
-  for_each = data.aws_region.current.name == "ap-northeast-2" ? local.pri_sub_key_by_ids : {}
+resource "aws_instance" "pri_proxy" {
+  for_each = data.aws_region.current.name == "ap-northeast-2" ? local.pri_sub34_key_by_ids : {}
   ami      = data.aws_ami.latest_linux.id
   # instance_type               = "t4g.medium"
   instance_type               = "t3.small"
@@ -189,7 +177,7 @@ resource "aws_instance" "pri_bastion" {
   ami      = data.aws_ami.latest_linux.id
   instance_type               = "t3.small"
   associate_public_ip_address = false
-  subnet_id                   = local.pri_sub_key_by_ids.pri-a-3
+  subnet_id                   = local.pri_sub34_key_by_ids.pri-a-3
   vpc_security_group_ids      = [aws_security_group.sg["bastion"].id]
   # 추후에 global에서 가져와서 주입하는 형식으로 수정 필요.
   # iam_instance_profile        = aws_iam_instance_profile.ssm_instance_profile.name
@@ -280,7 +268,7 @@ resource "aws_lb_target_group" "pri_tg" {
 }
 
 resource "aws_lb_target_group_attachment" "pri_tg_att" {
-  for_each = data.aws_region.current.name == "ap-northeast-2" ? aws_instance.pri_instance : {}
+  for_each = data.aws_region.current.name == "ap-northeast-2" ? aws_instance.pri_proxy : {}
   target_group_arn = aws_lb_target_group.pri_tg[0].arn
   target_id        = each.value.id
   port             = 80

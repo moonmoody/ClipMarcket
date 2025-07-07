@@ -90,3 +90,4 @@ variable "seoul_pub_asg_config" {
   })
 }
 
+

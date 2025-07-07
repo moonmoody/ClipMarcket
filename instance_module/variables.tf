@@ -94,3 +94,9 @@ variable "pub_asg_config" {
     min_size         = number
   })
 }
+
+variable pri_sub34_ids_by_az {
+  description = "ALB에 적용될 private subnet 3번 4번 데이터"
+  type        = map
+}
+
