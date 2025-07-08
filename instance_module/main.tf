@@ -124,6 +124,11 @@ resource "aws_key_pair" "pub_key" {
   public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCA1wGQwHj1YsyndGjKZzDWU/lbwhiisVg11U7o3XFkjoV57M207pMjVdk0cGdismABfpq1amJrZ6P+QSzKqu+FHdebZar8C+oe1iwGgJwol5+IPt1vTmryYG+1XoAvmJNZjzY56WlmIZLYmG+VybHGd/OItO6hES/KjHP5FRnTptO1v77nb/EXUfA/WyJPr47Fb9y70jxSt+/0T4Hv397ZLVpenTWN59O8VI5ekjMyWIBwkxL9liFq2EJyTgJKy6dL3VBAQnDh4Ouh2oflD6pwbSD3HLwbDFHh/ChHi97TZ6mvO5bj3EzBP5Nwg5tSSjUosI89GDdnuu+4vv/ubRjn rsa-key-20250629"
 }
 
+resource "aws_key_pair" "pri_key" {
+  key_name   = "pri-key"
+  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC2tdliuf5tpkg8s9ZZ+hcrLG2rrM5J7452CeNNHJ5OV6UGAy+yCnIhRRtL+tUEkypRzJ6j5v2uxyaUgZ45OmIoxR25lrN7JGxY3K7JWnfDhwWc5CSt9L2cmmMfqr/+Okbb+HnFH538syzDqaE2hiuVTIjVCa4gpTbpBn0JLF2ShfMkB8nXsS0ezvRAOAh1bd5CENYRlndytjboEbB5xQPECJLscWFbsDi3Ys0suqxgKTm1c7ftlhv5cXmCSczNxravz41+T7k+GqhePgKGap/KShDB7nMlu8qgtUqLxaHRBRouClvs0yj3DAKFkJLvThOPV4TmWEtBLgQKCd4SQk3T rsa-key-20250708"
+}
+
 
 # Security Group Create
 resource "aws_security_group" "sg" {
@@ -164,6 +169,7 @@ resource "aws_instance" "pri_proxy" {
   associate_public_ip_address = false
   subnet_id                   = each.value
   vpc_security_group_ids      = data.aws_region.current.name == "ap-northeast-2" ? [aws_security_group.sg["proxy"].id] : []
+  key_name                    = aws_key_pair.pri_key.key_name
 
   tags = {
     Name = "${var.pjt_name}-pri-proxy-${regex("-([a-z])-", each.key)[0]}"
