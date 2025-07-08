@@ -190,7 +190,6 @@ resource "aws_lb" "pub_alb" {
 # ALB Security Group
 resource "aws_security_group" "pub_alb_sg" {
   name        = "${var.pjt_name}-sg-pub-alb"
-  description = "Allow HTTP inbound traffic"
   vpc_id      = var.vpc_id
 
   ingress {
