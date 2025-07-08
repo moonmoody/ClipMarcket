@@ -10,7 +10,7 @@ locals {
     for name, subnet in var.subnets : subnet.az => aws_subnet.sub[name].id if startswith(name, "pub-")
   }
   pri_subnet_ids_by_az = {
-    for name, subnet in var.subnets : subnet.az => aws_subnet.sub[name].id if data.aws_region.current.name == "ap-northeast-2" ? contains(["pri-a-3", "pri-c-4"], name) : startswith(name, "pri-a-3")
+    for name, subnet in var.subnets : subnet.az => aws_subnet.sub[name].id if data.aws_region.current.id == "ap-northeast-2" ? contains(["pri-a-3", "pri-c-4"], name) : startswith(name, "pri-a-3")
   }
 }
 
@@ -87,7 +87,7 @@ resource "aws_route_table" "pub_route_tb" {
 
 resource "aws_route_table" "pri_route_tb" {
   # virginia에서는 a 가용영역에서 사용할 것만 생성 되도록...
-  for_each = data.aws_region.current.name == "ap-northeast-2" ? var.nat_gw_azs : { for az, val  in var.nat_gw_azs : az => val if val == "a" }
+  for_each = data.aws_region.current.id == "ap-northeast-2" ? var.nat_gw_azs : { for az, val  in var.nat_gw_azs : az => val if val == "a" }
 
   vpc_id = aws_vpc.vpc.id
 

@@ -22,7 +22,7 @@ locals {
     for key, subnet in var.vpc_sub_key_by_ids : key => subnet if startswith(key, "pub-")
   }
   pri_sub34_key_by_ids = {
-    for key, subnet in var.vpc_sub_key_by_ids : key => subnet if data.aws_region.current.name == "ap-northeast-2" ? contains(["pri-a-3", "pri-c-4"], key) : startswith(key, "pri-a-3")
+    for key, subnet in var.vpc_sub_key_by_ids : key => subnet if data.aws_region.current.id == "ap-northeast-2" ? contains(["pri-a-3", "pri-c-4"], key) : startswith(key, "pri-a-3")
   }
  
   # AZ별로 1개씩만 고르기 (예: 2a, 2c 중복 제거)
@@ -39,48 +39,8 @@ locals {
   pri_subnet_ids = values(var.pri_sub34_ids_by_az)  # ALB에 넣을 list(string)
 }
 
-# sg ingress data
+# locals for security group keys
 locals {
-  # null 값인 데이터 걸러내기
-  valid_rules = {
-    for sg_key, rules in var.ingress_rule_config : sg_key => rules if rules != null
-  }
-
-  # map은 중첩 for문이 불가능 하므로 [ [ ] ] 형태로 변환
-  # [ [ {pub 규칙1}, {pub 규칙2} ], [ {pri 규칙1}, {pri 규칙2} ] ]
-  rule_lists = [
-    for sg_key, rules in local.valid_rules : [
-      for rule_key, rule in rules : {
-        sg_key    = sg_key
-        rule_key  = rule_key
-        protocol  = rule.protocol
-        from_port = rule.from_port
-        to_port   = rule.to_port
-        cidr      = rule.cidr
-      }
-    ]
-  ]
-
-  # 중첩 리스트를 단일 리스트 구조로 변환
-  flat_rule_list = flatten(local.rule_lists)
-
-  ingress_rules = {
-    # [{데이터1}, {데이터2}, {데이터3}...] 을 item 에 setting
-    for item in local.flat_rule_list :
-    # 키 생성 (예시 "pub-http")
-    "${item.sg_key}-${item.rule_key}" => {
-      sg_id     = aws_security_group.sg[item.sg_key].id
-      protocol  = item.protocol
-      from_port = item.from_port
-      to_port   = item.to_port
-      cidr_ipv4 = item.cidr
-    }
-  }
-
-  # rules_only_key = distinct ([
-  #   for item in local.flat_rule_list : item.sg_key
-  # ])
-
   # ingress와 egress에 있는 모든 key
   all_sg_keys = toset(concat(
     keys(var.ingress_rule_config),
@@ -88,35 +48,6 @@ locals {
   ))
 }
 
-# sg egress data
-locals {
-  valid_e_rules = {
-    for sg_key, rules in var.egress_rule_config : sg_key => rules if rules != null
-  }
-  e_rule_lists = [
-    for sg_key, rules in local.valid_e_rules : [
-      for rule_key, rule in rules : {
-        sg_key    = sg_key
-        rule_key  = rule_key
-        protocol  = rule.protocol
-        from_port = rule.from_port
-        to_port   = rule.to_port
-        cidr      = rule.cidr
-      }
-    ]
-  ]
-  flat_e_rule_list = flatten(local.e_rule_lists)
-  egress_rules = {
-    for item in local.flat_e_rule_list :
-    "${item.sg_key}-${item.rule_key}" => {
-      sg_id     = aws_security_group.sg[item.sg_key].id
-      protocol  = item.protocol
-      from_port = item.from_port
-      to_port   = item.to_port
-      cidr_ipv4 = item.cidr
-    }
-  }
-}
 
 # 프록시 서버 키페어는 없어도 무방함
 resource "aws_key_pair" "pub_key" {
@@ -130,45 +61,50 @@ resource "aws_key_pair" "pri_key" {
 }
 
 
-# Security Group Create
+# Security Group Create with dynamic ingress/egress rules
 resource "aws_security_group" "sg" {
   for_each = local.all_sg_keys
-  name        = "sg_${each.key}"
-  vpc_id      = var.vpc_id
+  name     = "sg_${each.key}"
+  vpc_id   = var.vpc_id
+
+  dynamic "ingress" {
+    # vigrinia 에 proxy = null 이 들어가는 현상이 있어서..
+    for_each = var.ingress_rule_config[each.key] != null ? var.ingress_rule_config[each.key] : {}
+    content {
+      # from_port와 to_port가 정의되지 않은 경우 기본값 0을 사용
+      from_port   = lookup(ingress.value, "from_port", 0)
+      to_port     = lookup(ingress.value, "to_port", 0)
+      protocol    = ingress.value.protocol
+      cidr_blocks = [ingress.value.cidr]
+    }
+  }
+
+  dynamic "egress" {
+    for_each = var.egress_rule_config[each.key] != null ? var.egress_rule_config[each.key] : {}
+    content {
+      from_port   = lookup(egress.value, "from_port", 0)
+      to_port     = lookup(egress.value, "to_port", 0)
+      protocol    = egress.value.protocol
+      cidr_blocks = [egress.value.cidr]
+    }
+  }
 
   tags = {
     Name = "${var.pjt_name}-sg-${each.key}"
   }
 }
 
-resource "aws_vpc_security_group_ingress_rule" "sg_ingress" {
-  for_each = local.ingress_rules
-  security_group_id = each.value.sg_id
-  cidr_ipv4         = each.value.cidr_ipv4
-  from_port         = each.value.from_port
-  to_port           = each.value.to_port
-  ip_protocol       = each.value.protocol
-}
-
-resource "aws_vpc_security_group_egress_rule" "sg_egress" {
-  for_each = local.egress_rules
-  security_group_id = each.value.sg_id
-  cidr_ipv4         = each.value.cidr_ipv4
-  from_port         = each.value.from_port
-  to_port           = each.value.to_port
-  ip_protocol       = each.value.protocol
-}
 
 # Seoul 리전에서만 생성.
 # 프록시 서버 private instance
 resource "aws_instance" "pri_proxy" {
-  for_each = data.aws_region.current.name == "ap-northeast-2" ? local.pri_sub34_key_by_ids : {}
+  for_each = data.aws_region.current.id == "ap-northeast-2" ? local.pri_sub34_key_by_ids : {}
   ami      = data.aws_ami.latest_linux.id
   # instance_type               = "t4g.medium"
   instance_type               = "t3.small"
   associate_public_ip_address = false
   subnet_id                   = each.value
-  vpc_security_group_ids      = data.aws_region.current.name == "ap-northeast-2" ? [aws_security_group.sg["proxy"].id] : []
+  vpc_security_group_ids      = data.aws_region.current.id == "ap-northeast-2" ? [aws_security_group.sg["proxy"].id] : []
   # key_name                    = aws_key_pair.pri_key.key_name
   user_data = <<-EOF
               #!/bin/bash
@@ -186,7 +122,7 @@ resource "aws_instance" "pri_proxy" {
   #             EOF
 
   tags = {
-    Name = "${var.pjt_name}-pri-proxy-${regex("-([a-z])-", each.key)[0]}"
+    Name = "${var.pjt_name}-pri-proxy-${regex("-([a-z])-" , each.key)[0]}"
   }
 
   depends_on = [var.nat_gw]
@@ -281,7 +217,7 @@ resource "aws_security_group" "pub_alb_sg" {
 # Private Load Balancer
 # Seoul 리전에서만 생성.
 resource "aws_lb_target_group" "pri_tg" {
-  count = data.aws_region.current.name == "ap-northeast-2" ? 1 : 0
+  count = data.aws_region.current.id == "ap-northeast-2" ? 1 : 0
   name     = "pri-alb-tg"
   port     = 80
   protocol = "HTTP"
@@ -289,14 +225,14 @@ resource "aws_lb_target_group" "pri_tg" {
 }
 
 resource "aws_lb_target_group_attachment" "pri_tg_att" {
-  for_each = data.aws_region.current.name == "ap-northeast-2" ? aws_instance.pri_proxy : {}
+  for_each = data.aws_region.current.id == "ap-northeast-2" ? aws_instance.pri_proxy : {}
   target_group_arn = aws_lb_target_group.pri_tg[0].arn
   target_id        = each.value.id
   port             = 80
 }
 
 resource "aws_lb_listener" "pri_alb_listener" {
-  count = data.aws_region.current.name == "ap-northeast-2" ? 1 : 0
+  count = data.aws_region.current.id == "ap-northeast-2" ? 1 : 0
   load_balancer_arn = aws_lb.pri_alb[0].arn
   port              = "80"
   protocol          = "HTTP"
@@ -308,7 +244,7 @@ resource "aws_lb_listener" "pri_alb_listener" {
 }
 
 resource "aws_lb" "pri_alb" {
-  count = data.aws_region.current.name == "ap-northeast-2" ? 1 : 0
+  count = data.aws_region.current.id == "ap-northeast-2" ? 1 : 0
   name               = "${var.pjt_name}-pri-alb"
   internal           = false                                
   load_balancer_type = "application"
@@ -323,9 +259,8 @@ resource "aws_lb" "pri_alb" {
 }
 
 resource "aws_security_group" "pri_alb_sg" {
-  count = data.aws_region.current.name == "ap-northeast-2" ? 1 : 0
+  count = data.aws_region.current.id == "ap-northeast-2" ? 1 : 0
   name        = "${var.pjt_name}-sg-pri-alb"
-  description = "Allow HTTP inbound traffic"
   vpc_id      = var.vpc_id
 
   ingress {
@@ -374,7 +309,7 @@ resource "aws_launch_template" "pub_lt" {
 # Auto Scaling
 resource "aws_autoscaling_group" "pub_asg" {
   for_each = local.pub_sub_key_by_ids
-  name                = "${var.pjt_name}-pub-asg-${regex("-([a-z])-", each.key)[0]}"
+  name                = "${var.pjt_name}-pub-asg-${regex("-([a-z])-" , each.key)[0]}"
   desired_capacity    = var.pub_asg_config.desired_capacity
   max_size            = var.pub_asg_config.max_size
   min_size            = var.pub_asg_config.min_size
@@ -388,7 +323,7 @@ resource "aws_autoscaling_group" "pub_asg" {
   # 실제 생성되는 instance에 적용되는 tag
   tag {
     key                 = "Name"
-    value               = "${var.pjt_name}-pub-${regex("-([a-z])-", each.key)[0]}"
+    value               = "${var.pjt_name}-pub-${regex("-([a-z])-" , each.key)[0]}"
     propagate_at_launch = true
   }
 }
