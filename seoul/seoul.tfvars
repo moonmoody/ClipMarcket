@@ -41,28 +41,38 @@ seoul_ingress_rule_config = {
   }
   proxy = {
     "https"  = { protocol = "tcp", from_port = "8080", to_port = "8080", cidr = "0.0.0.0/0" },
+    "ssh"   = { protocol = "tcp", from_port = "22", to_port = "22", cidr = "0.0.0.0/0" },
+    "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
   }
-  bastion = null
+  bastion = {
+    "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
+  }
   aurora = {
+    "ssh"   = { protocol = "tcp", from_port = "22", to_port = "22", cidr = "0.0.0.0/0" },
     "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
   }
 }
 seoul_egress_rule_config = {
   pub = {
-    "all" = { protocol = "all", from_port = null, to_port = null, cidr = "0.0.0.0/0" }
+    "all" = { protocol = "all", from_port = null, to_port = null, cidr = "0.0.0.0/0" },
+    # "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
   }
   proxy = {
-    "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" },
-    "dns" = { protocol = "udp", from_port = "53", to_port = "53", cidr = "0.0.0.0/0" }
+    "https" = { protocol = "tcp", from_port = "443", to_port = "443", cidr = "0.0.0.0/0" },
+    "dns" = { protocol = "udp", from_port = "53", to_port = "53", cidr = "0.0.0.0/0" },
+    "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
   }
   bastion = {
     "https" = { protocol = "tcp", from_port = "443", to_port = "443", cidr = "0.0.0.0/0" },
-    "dns" = { protocol = "udp", from_port = "53", to_port = "53", cidr = "0.0.0.0/0" }
+    "dns" = { protocol = "udp", from_port = "53", to_port = "53", cidr = "0.0.0.0/0" },
+    "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
   }
-  aurora = null
-  # aurora = {
-  #   "all" = { protocol = "all", from_port = null, to_port = null, cidr = "0.0.0.0/0" }
-  # }
+  # aurora = null
+  aurora = {
+    # "https" = { protocol = "tcp", from_port = "443", to_port = "443", cidr = "0.0.0.0/0" },
+    # "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
+    "all" = { protocol = "all", from_port = null, to_port = null, cidr = "0.0.0.0/0" }
+  }
 }
 
 # 가용영역 별로 auto scaling을 적용했기 때문에 숫자 설정에 유의

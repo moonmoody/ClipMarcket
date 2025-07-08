@@ -169,7 +169,21 @@ resource "aws_instance" "pri_proxy" {
   associate_public_ip_address = false
   subnet_id                   = each.value
   vpc_security_group_ids      = data.aws_region.current.name == "ap-northeast-2" ? [aws_security_group.sg["proxy"].id] : []
-  key_name                    = aws_key_pair.pri_key.key_name
+  # key_name                    = aws_key_pair.pri_key.key_name
+  user_data = <<-EOF
+              #!/bin/bash
+              # SSH 비밀번호 인증 활성화
+              sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+              # sshd 서비스 재시작하여 변경사항 적용
+              systemctl restart sshd
+              # ec2-user의 비밀번호 설정
+              echo 'ec2-user:mypassword' | chpasswd
+              EOF
+  # user_data = <<-EOF
+  #             #!/bin/bash
+  #             aws s3 cp s3://my-bucket/my_key.pem /home/ec2-user/my_key.pem
+  #             chmod 400 /home/ec2-user/my_key.pem
+  #             EOF
 
   tags = {
     Name = "${var.pjt_name}-pri-proxy-${regex("-([a-z])-", each.key)[0]}"
@@ -188,6 +202,7 @@ resource "aws_instance" "pri_bastion" {
   # 추후에 global에서 가져와서 주입하는 형식으로 수정 필요.
   # iam_instance_profile        = aws_iam_instance_profile.ssm_instance_profile.name
   iam_instance_profile        = var.ssm_instance_profile_name_from_global
+  # key_name                    = aws_key_pair.pub_key.key_name
 
   tags = {
     Name = "${var.pjt_name}-pri-bastion"
