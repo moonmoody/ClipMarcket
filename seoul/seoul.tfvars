@@ -40,11 +40,13 @@ seoul_ingress_rule_config = {
     "tcp8080"   = { protocol = "tcp", from_port = "8080", to_port = "8080", cidr = "0.0.0.0/0" },
   }
   proxy = {
+    "icmp"  = { protocol = "icmp", from_port = -1, to_port = -1, cidr = "0.0.0.0/0" },
     # "https"  = { protocol = "tcp", from_port = "8080", to_port = "8080", cidr = "0.0.0.0/0" },
-    "ssh"   = { protocol = "tcp", from_port = "22", to_port = "22", cidr = "0.0.0.0/0" }
-    # "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
+    "ssh"   = { protocol = "tcp", from_port = "22", to_port = "22", cidr = "0.0.0.0/0" },
+    "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
   }
   bastion = {
+    "icmp"  = { protocol = "icmp", from_port = -1, to_port = -1, cidr = "0.0.0.0/0" },
     "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
   }
   aurora = {
@@ -58,16 +60,19 @@ seoul_egress_rule_config = {
     # "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
   }
   proxy = {
+    "icmp"  = { protocol = "icmp", from_port = -1, to_port = -1, cidr = "0.0.0.0/0" },
     "ssh"   = { protocol = "tcp", from_port = "22", to_port = "22", cidr = "0.0.0.0/0" },
-    "http" = { protocol = "tcp", from_port = "80", to_port = "80", cidr = "0.0.0.0/0" }
+    "http" = { protocol = "tcp", from_port = "80", to_port = "80", cidr = "0.0.0.0/0" },
     # "https" = { protocol = "tcp", from_port = "443", to_port = "443", cidr = "0.0.0.0/0" },
     # "dns" = { protocol = "udp", from_port = "53", to_port = "53", cidr = "0.0.0.0/0" },
-    # "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
+    "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
   }
   bastion = {
+    "icmp"  = { protocol = "icmp", from_port = -1, to_port = -1, cidr = "0.0.0.0/0" },
     "ssh"   = { protocol = "tcp", from_port = "22", to_port = "22", cidr = "0.0.0.0/0" },
     "http" = { protocol = "tcp", from_port = "80", to_port = "80", cidr = "0.0.0.0/0" },
     "https" = { protocol = "tcp", from_port = "443", to_port = "443", cidr = "0.0.0.0/0" },
+    "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
     # "dns" = { protocol = "udp", from_port = "53", to_port = "53", cidr = "0.0.0.0/0" },
     # "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
   }
