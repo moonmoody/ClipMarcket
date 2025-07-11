@@ -26,3 +26,6 @@ global/terraform.tfstate.backup
 global/.terraform/providers/registry.terraform.io/hashicorp/aws/6.0.0/windows_386/LICENSE.txt
 global/.terraform/providers/registry.terraform.io/hashicorp/aws/6.0.0/windows_386/terraform-provider-aws_v6.0.0_x5.exe
 global/terraform.tfstate
+seoul/.terraform/terraform.tfstate
+virginia/.terraform/terraform.tfstate
+cd
