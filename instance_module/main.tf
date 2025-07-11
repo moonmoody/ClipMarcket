@@ -196,7 +196,7 @@ resource "aws_instance" "pri_bastion" {
   vpc_security_group_ids      = [aws_security_group.sg["bastion"].id]
   # 추후에 global에서 가져와서 주입하는 형식으로 수정 필요.
   # iam_instance_profile        = aws_iam_instance_profile.ssm_instance_profile.name
-  iam_instance_profile        = var.ssm_instance_profile_name_from_global
+  # iam_instance_profile        = var.ssm_instance_profile_name_from_global
   # key_name                    = aws_key_pair.pub_key.key_name
 
   tags = {
@@ -394,52 +394,52 @@ resource "aws_instance" "pri_bastion" {
 # }
 
 # Launch Template
-resource "aws_launch_template" "pub_lt" {
-  name_prefix   = "${var.pjt_name}-pub-"
-  image_id      = data.aws_ami.latest_linux.id
-  instance_type = "t3.small"
-  key_name      = aws_key_pair.pub_key.key_name
+# resource "aws_launch_template" "pub_lt" {
+#   name_prefix   = "${var.pjt_name}-pub-"
+#   image_id      = data.aws_ami.latest_linux.id
+#   instance_type = "t3.small"
+#   key_name      = aws_key_pair.pub_key.key_name
 
-  network_interfaces {
-    associate_public_ip_address = true
-    security_groups  = [aws_security_group.sg["pub"].id]
-  }
+#   network_interfaces {
+#     associate_public_ip_address = true
+#     security_groups  = [aws_security_group.sg["pub"].id]
+#   }
 
-  tag_specifications {
-    resource_type = "instance"
-    tags = {
-      Name = "${var.pjt_name}-pub-instance"     # 태그 설정이 필수.
-    }
-  }
+#   tag_specifications {
+#     resource_type = "instance"
+#     tags = {
+#       Name = "${var.pjt_name}-pub-instance"     # 태그 설정이 필수.
+#     }
+#   }
 
-  depends_on = [var.nat_gw]
-}
+#   depends_on = [var.nat_gw]
+# }
 
 # Auto Scaling
-resource "aws_autoscaling_group" "pub_asg" {
-  for_each = local.pub_sub_key_by_ids
-  name                = "${var.pjt_name}-pub-asg-${regex("-([a-z])-" , each.key)[0]}"
-  desired_capacity    = var.pub_asg_config.desired_capacity
-  max_size            = var.pub_asg_config.max_size
-  min_size            = var.pub_asg_config.min_size
-  vpc_zone_identifier = [each.value]
+# resource "aws_autoscaling_group" "pub_asg" {
+#   for_each = local.pub_sub_key_by_ids
+#   name                = "${var.pjt_name}-pub-asg-${regex("-([a-z])-" , each.key)[0]}"
+#   desired_capacity    = var.pub_asg_config.desired_capacity
+#   max_size            = var.pub_asg_config.max_size
+#   min_size            = var.pub_asg_config.min_size
+#   vpc_zone_identifier = [each.value]
 
-  launch_template {
-    id      = aws_launch_template.pub_lt.id
-    version = "$Latest"
-  }
+#   launch_template {
+#     id      = aws_launch_template.pub_lt.id
+#     version = "$Latest"
+#   }
 
-  # 실제 생성되는 instance에 적용되는 tag
-  tag {
-    key                 = "Name"
-    value               = "${var.pjt_name}-pub-${regex("-([a-z])-" , each.key)[0]}"
-    propagate_at_launch = true
-  }
-}
+#   # 실제 생성되는 instance에 적용되는 tag
+#   tag {
+#     key                 = "Name"
+#     value               = "${var.pjt_name}-pub-${regex("-([a-z])-" , each.key)[0]}"
+#     propagate_at_launch = true
+#   }
+# }
 
-# AutoScaling에 Target Group attachment
-resource "aws_autoscaling_attachment" "pub_asg_att" {
-  for_each = aws_autoscaling_group.pub_asg
-  autoscaling_group_name = each.value.id
-  lb_target_group_arn    = aws_lb_target_group.pub_tg.arn
-}
+# # AutoScaling에 Target Group attachment
+# resource "aws_autoscaling_attachment" "pub_asg_att" {
+#   for_each = aws_autoscaling_group.pub_asg
+#   autoscaling_group_name = each.value.id
+#   lb_target_group_arn    = aws_lb_target_group.pub_tg.arn
+# }
