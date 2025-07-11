@@ -39,4 +39,3 @@ module "seoul_instance" {
     aws = aws.seoul
   }
 }
-
