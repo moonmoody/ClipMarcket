@@ -39,7 +39,6 @@ locals {
   pri_subnet_ids = values(var.pri_sub34_ids_by_az)  # ALB에 넣을 list(string)
 }
 
-# locals for security group keys
 locals {
   # ingress와 egress에 있는 모든 key
   all_sg_keys = toset(concat(
@@ -97,36 +96,96 @@ resource "aws_security_group" "sg" {
 
 # Seoul 리전에서만 생성.
 # 프록시 서버 private instance
-resource "aws_instance" "pri_proxy" {
-  for_each = data.aws_region.current.id == "ap-northeast-2" ? local.pri_sub34_key_by_ids : {}
-  ami      = data.aws_ami.latest_linux.id
-  # instance_type               = "t4g.medium"
-  instance_type               = "t3.small"
-  associate_public_ip_address = false
-  subnet_id                   = each.value
-  vpc_security_group_ids      = data.aws_region.current.id == "ap-northeast-2" ? [aws_security_group.sg["proxy"].id] : []
-  # key_name                    = aws_key_pair.pri_key.key_name
-  user_data = <<-EOF
-              #!/bin/bash
-              # SSH 비밀번호 인증 활성화
-              sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
-              # sshd 서비스 재시작하여 변경사항 적용
-              systemctl restart sshd
-              # ec2-user의 비밀번호 설정
-              echo 'ec2-user:mypassword' | chpasswd
-              EOF
-  # user_data = <<-EOF
-  #             #!/bin/bash
-  #             aws s3 cp s3://my-bucket/my_key.pem /home/ec2-user/my_key.pem
-  #             chmod 400 /home/ec2-user/my_key.pem
-  #             EOF
+# resource "aws_instance" "pri_proxy" {
+#   for_each = data.aws_region.current.id == "ap-northeast-2" ? local.pri_sub34_key_by_ids : {}
+#   ami      = data.aws_ami.latest_linux.id
+#   # instance_type               = "t4g.medium"
+#   instance_type               = "t3.small"
+#   associate_public_ip_address = false
+#   subnet_id                   = each.value
+#   vpc_security_group_ids      = data.aws_region.current.id == "ap-northeast-2" ? [aws_security_group.sg["proxy"].id] : []
+#   # key_name                    = aws_key_pair.pri_key.key_name
+#   user_data = <<-EOF
+#                   #!/bin/bash
+#                   set -e
+#                   sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+#                   systemctl restart sshd
+#                   echo 'ec2-user:mypassword' | chpasswd
+#                   yum install -y python3-pip
+#                   pip3 install flask pymysql
 
-  tags = {
-    Name = "${var.pjt_name}-pri-proxy-${regex("-([a-z])-" , each.key)[0]}"
-  }
+#                   cat << 'EOF_PYTHON_SCRIPT' > /home/ec2-user/proxy_server.py
+#                   from flask import Flask, request, jsonify
+#                   import pymysql
+#                   import json
+#                   import os
 
-  depends_on = [var.nat_gw]
-}
+#                   app = Flask(__name__)
+
+#                   # --- DB 정보 (환경 변수) ---
+#                   db_host = os.environ.get("DB_HOST")
+#                   db_user = os.environ.get("DB_USER")
+#                   db_password = os.environ.get("DB_PASSWORD")
+#                   db_name = os.environ.get("DB_NAME")
+
+#                   def get_db_connection():
+#                       """요청마다 새로운 DB 커넥션을 생성하여 반환"""
+#                       return pymysql.connect(
+#                           host=db_host, user=db_user, password=db_password,
+#                           database=db_name, autocommit=True, cursorclass=pymysql.cursors.DictCursor
+#                       )
+
+#                   @app.route("/api/rekognition-result", methods=["POST"])
+#                   def save_result():
+#                       data = request.get_json()
+#                       if not data or not data.get("image") or not data.get("labels"):
+#                           return jsonify({"error": "Missing required fields"}), 400
+
+#                       connection = None
+#                       try:
+#                           connection = get_db_connection()
+#                           with connection.cursor() as cursor:
+#                               sql = "INSERT INTO image_analysis (image_key, labels) VALUES (%s, %s)"
+#                               cursor.execute(sql, (data["image"], json.dumps(data["labels"])))
+#                           return jsonify({"message": "Saved"}), 200
+#                       except Exception as e:
+#                           print(f"ERROR: DB Error - {e}")
+#                           return jsonify({"error": str(e)}), 500
+#                       finally:
+#                           if connection:
+#                               connection.close()
+
+#                   if __name__ == "__main__":
+#                       app.run(host="0.0.0.0", port=8080)
+#                   EOF_PYTHON_SCRIPT
+
+#                   chown ec2-user:ec2-user /home/ec2-user/proxy_server.py
+
+#                   # 4. 환경 변수 설정
+#                   cat << 'EOF_ENV' >> /home/ec2-user/.bashrc
+#                   export DB_HOST="virginia-db.global-gzu281l4xzib.global.rds.amazonaws.com"
+#                   export DB_USER="admin"
+#                   export DB_PASSWORD="tmdrbs159!"
+#                   export DB_NAME="clipmarket_db"
+#                   EOF_ENV
+
+#                   chown ec2-user:ec2-user /home/ec2-user/.bashrc
+
+#                   # 5. 애플리케이션 실행 (핵심 수정 사항)
+#                   sudo -u ec2-user bash -i -c "nohup python3 /home/ec2-user/proxy_server.py > /home/ec2-user/app.log 2>&1 &"
+#                 EOF
+#   # user_data = <<-EOF
+#   #             #!/bin/bash
+#   #             aws s3 cp s3://my-bucket/my_key.pem /home/ec2-user/my_key.pem
+#   #             chmod 400 /home/ec2-user/my_key.pem
+#   #             EOF
+
+#   tags = {
+#     Name = "${var.pjt_name}-pri-proxy-${regex("-([a-z])-" , each.key)[0]}"
+#   }
+
+#   depends_on = [var.nat_gw]
+# }
 
 # bastion_ iam(SSManagedInstanceCore) 권한을 가진 instance 
 resource "aws_instance" "pri_bastion" {
@@ -148,140 +207,191 @@ resource "aws_instance" "pri_bastion" {
 }
 
 # Create Target Group
-resource "aws_lb_target_group" "pub_tg" {
-  name     = "pub-alb-tg"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = var.vpc_id
+# resource "aws_lb_target_group" "pub_tg" {
+#   name     = "pub-alb-tg"
+#   port     = 80
+#   protocol = "HTTP"
+#   vpc_id   = var.vpc_id
 
-  tags = {
-    Name = "${var.pjt_name}-pub-alb-tg"
-  }
-}
+#   tags = {
+#     Name = "${var.pjt_name}-pub-alb-tg"
+#   }
+# }
 
 
 # Create Listener
-resource "aws_lb_listener" "pub_web_alb_listener" {
-  load_balancer_arn = aws_lb.pub_alb.arn
-  port              = "80"
-  protocol          = "HTTP"
+# resource "aws_lb_listener" "pub_web_alb_listener" {
+#   load_balancer_arn = aws_lb.pub_alb.arn
+#   port              = "80"
+#   protocol          = "HTTP"
 
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.pub_tg.arn
-  }
-}
+#   default_action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.pub_tg.arn
+#   }
+# }
 
 # Create alb for Public Subnet
-resource "aws_lb" "pub_alb" {
-  name               = "${var.pjt_name}-pub-alb"
-  internal           = false                                
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.pub_alb_sg.id]
-  subnets            = local.pub_subnet_ids                 
+# resource "aws_lb" "pub_alb" {
+#   name               = "${var.pjt_name}-pub-alb"
+#   internal           = false                                
+#   load_balancer_type = "application"
+#   security_groups    = [aws_security_group.pub_alb_sg.id]
+#   subnets            = local.pub_subnet_ids                 
 
-  enable_deletion_protection = false
+#   enable_deletion_protection = false
 
-  tags = {
-    Name = "${var.pjt_name}-pub-alb"
-  }
-}
+#   tags = {
+#     Name = "${var.pjt_name}-pub-alb"
+#   }
+# }
 
 # ALB Security Group
-resource "aws_security_group" "pub_alb_sg" {
-  name        = "${var.pjt_name}-sg-pub-alb"
-  vpc_id      = var.vpc_id
+# resource "aws_security_group" "pub_alb_sg" {
+#   name        = "${var.pjt_name}-sg-pub-alb"
+#   vpc_id      = var.vpc_id
 
-  ingress {
-    description = "Allow HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+#   ingress {
+#     description = "Allow HTTP"
+#     from_port   = 80
+#     to_port     = 80
+#     protocol    = "tcp"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
+#   ingress {
+#     description = "Allow HTTPS"
+#     from_port   = 443
+#     to_port     = 443
+#     protocol    = "tcp"
+#     cidr_blocks = ["0.0.0.0/0"] 
+#   }
 
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+#   egress {
+#     description = "Allow all outbound traffic"
+#     from_port   = 0
+#     to_port     = 0
+#     protocol    = "-1"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
 
-  tags = {
-    Name = "${var.pjt_name}-sg-pub-alb"
-  }
-}
+#   tags = {
+#     Name = "${var.pjt_name}-sg-pub-alb"
+#   }
+# }
 
 # Private Load Balancer
 # Seoul 리전에서만 생성.
-resource "aws_lb_target_group" "pri_tg" {
-  count = data.aws_region.current.id == "ap-northeast-2" ? 1 : 0
-  name     = "pri-alb-tg"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = var.vpc_id
-}
+# resource "aws_lb_target_group" "pri_tg" {
+#   count = data.aws_region.current.id == "ap-northeast-2" ? 1 : 0
+#   name     = "pri-alb-tg"
+#   port     = 80
+#   protocol = "HTTP"
+#   vpc_id   = var.vpc_id
+# }
 
-resource "aws_lb_target_group_attachment" "pri_tg_att" {
-  for_each = data.aws_region.current.id == "ap-northeast-2" ? aws_instance.pri_proxy : {}
-  target_group_arn = aws_lb_target_group.pri_tg[0].arn
-  target_id        = each.value.id
-  port             = 80
-}
+# resource "aws_lb_target_group_attachment" "pri_tg_att" {
+#   for_each = data.aws_region.current.id == "ap-northeast-2" ? aws_instance.pri_proxy : {}
+#   target_group_arn = aws_lb_target_group.pri_tg[0].arn
+#   target_id        = each.value.id
+#   port             = 80
+# }
 
-resource "aws_lb_listener" "pri_alb_listener" {
-  count = data.aws_region.current.id == "ap-northeast-2" ? 1 : 0
-  load_balancer_arn = aws_lb.pri_alb[0].arn
-  port              = "80"
-  protocol          = "HTTP"
+# locals {
+#   listeners = {
+#     http = {
+#       port     = 80
+#       protocol = "HTTP"
+#     },
+#     https = {
+#       port     = 443
+#       protocol = "HTTPS"
+#     }
+#   }
 
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.pri_tg[0].arn
-  }
-}
+#   is_seoul = data.aws_region.current.id == "ap-northeast-2"
+# }
 
-resource "aws_lb" "pri_alb" {
-  count = data.aws_region.current.id == "ap-northeast-2" ? 1 : 0
-  name               = "${var.pjt_name}-pri-alb"
-  internal           = false                                
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.pri_alb_sg[0].id]
-  subnets            = local.pri_subnet_ids                 
+# provider "aws" {
+#   alias  = "us-east-1"
+#   region = "us-east-1"
+# }
 
-  enable_deletion_protection = false
+# data "aws_acm_certificate" "my_cert" {
+#   provider = aws.us-east-1
+#   # 내 도메인 이름을 여기에 입력합니다.
+#   # domain      = "www.dck.world"
+#   domain      = "www.clip503.cloud"
+  
+#   # 가장 일반적으로 사용되는 검증 상태 필터
+#   # statuses    = ["ISSUED"] 
+#   statuses    = ["ISSUED", "PENDING_VALIDATION"]
+#   most_recent = true
+# }
 
-  tags = {
-    Name = "${var.pjt_name}-pri-alb"
-  }
-}
+# resource "aws_lb_listener" "pri_alb_listener" {
+#   for_each = local.is_seoul ? local.listeners : {}
+#   # load_balancer_arn = aws_lb.pri_alb[0].arn
+#   # port              = "80"
+#   # protocol          = "HTTP"
+#   load_balancer_arn = aws_lb.pri_alb[0].arn
+#   port              = each.value.port
+#   protocol          = each.value.protocol
 
-resource "aws_security_group" "pri_alb_sg" {
-  count = data.aws_region.current.id == "ap-northeast-2" ? 1 : 0
-  name        = "${var.pjt_name}-sg-pri-alb"
-  vpc_id      = var.vpc_id
+#   certificate_arn   = each.value.protocol == "HTTPS" ? data.aws_acm_certificate.my_cert.arn : null
 
-  ingress {
-    description = "Allow HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+#   default_action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.pri_tg[0].arn
+#   }
+# }
 
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+# resource "aws_lb" "pri_alb" {
+#   count = data.aws_region.current.id == "ap-northeast-2" ? 1 : 0
+#   name               = "${var.pjt_name}-pri-alb"
+#   internal           = false                                
+#   load_balancer_type = "application"
+#   security_groups    = [aws_security_group.pri_alb_sg[0].id]
+#   subnets            = local.pri_subnet_ids                 
 
-  tags = {
-    Name = "${var.pjt_name}-sg-pri-alb"
-  }
-}
+#   enable_deletion_protection = false
+
+#   tags = {
+#     Name = "${var.pjt_name}-pri-alb"
+#   }
+# }
+
+# resource "aws_security_group" "pri_alb_sg" {
+#   count = data.aws_region.current.id == "ap-northeast-2" ? 1 : 0
+#   name        = "${var.pjt_name}-sg-pri-alb"
+#   vpc_id      = var.vpc_id
+
+#   ingress {
+#     description = "Allow HTTP"
+#     from_port   = 80
+#     to_port     = 80
+#     protocol    = "tcp"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
+#   ingress {
+#     description = "Allow proxy"
+#     from_port   = 8080
+#     to_port     = 8080
+#     protocol    = "tcp"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
+
+#   egress {
+#     description = "Allow all outbound traffic"
+#     from_port   = 0
+#     to_port     = 0
+#     protocol    = "-1"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
+
+#   tags = {
+#     Name = "${var.pjt_name}-sg-pri-alb"
+#   }
+# }
 
 # Launch Template
 resource "aws_launch_template" "pub_lt" {
