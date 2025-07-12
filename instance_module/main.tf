@@ -135,8 +135,6 @@ resource "aws_instance" "pri_bastion" {
   associate_public_ip_address = false
   subnet_id                   = local.pri_sub34_key_by_ids.pri-a-3
   vpc_security_group_ids      = [aws_security_group.sg["bastion"].id]
-  # 추후에 global에서 가져와서 주입하는 형식으로 수정 필요.
-  # iam_instance_profile        = aws_iam_instance_profile.ssm_instance_profile.name
   iam_instance_profile        = var.ssm_instance_profile_name_from_global
   # key_name                    = aws_key_pair.pub_key.key_name
 
@@ -199,6 +197,13 @@ resource "aws_security_group" "pub_alb_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  ingress {
+    description = "Allow HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] 
+  }
 
   egress {
     description = "Allow all outbound traffic"
@@ -229,6 +234,54 @@ resource "aws_lb_target_group_attachment" "pri_tg_att" {
   target_id        = each.value.id
   port             = 80
 }
+
+
+locals {
+  listeners = {
+    http = {
+      port     = 80
+      protocol = "HTTP"
+    },
+    https = {
+      port     = 443
+      protocol = "HTTPS"
+    }
+  }
+
+  is_seoul = data.aws_region.current.id == "ap-northeast-2"
+}
+
+provider "aws" {
+  alias  = "us-east-1"
+  region = "us-east-1"
+}
+
+data "aws_acm_certificate" "my_cert" {
+  provider = aws.us-east-1
+  # 내 도메인 이름을 여기에 입력합니다.
+  domain      = "www.clip503.cloud"
+  
+  # 가장 일반적으로 사용되는 검증 상태 필터
+  statuses    = ["ISSUED"] 
+  most_recent = true
+}
+
+# resource "aws_lb_listener" "pri_alb_listener" {
+#   for_each = local.is_seoul ? local.listeners : {}
+#   # load_balancer_arn = aws_lb.pri_alb[0].arn
+#   # port              = "80"
+#   # protocol          = "HTTP"
+#   load_balancer_arn = aws_lb.pri_alb[0].arn
+#   port              = each.value.port
+#   protocol          = each.value.protocol
+
+#   certificate_arn   = each.value.protocol == "HTTPS" ? data.aws_acm_certificate.my_cert.arn : null
+
+#   default_action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.pri_tg[0].arn
+#   }
+# }
 
 resource "aws_lb_listener" "pri_alb_listener" {
   count = data.aws_region.current.id == "ap-northeast-2" ? 1 : 0
@@ -266,6 +319,13 @@ resource "aws_security_group" "pri_alb_sg" {
     description = "Allow HTTP"
     from_port   = 80
     to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    description = "Allow proxy"
+    from_port   = 8080
+    to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
