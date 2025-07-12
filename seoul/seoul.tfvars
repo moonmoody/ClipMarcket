@@ -45,7 +45,8 @@ seoul_ingress_rule_config = {
     # "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
   }
   bastion = {
-    "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
+    "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" },
+    "ssh"   = { protocol = "tcp", from_port = "22", to_port = "22", cidr = "0.0.0.0/0" },
   }
   aurora = {
     "ssh"   = { protocol = "tcp", from_port = "22", to_port = "22", cidr = "0.0.0.0/0" },
