@@ -1,3 +1,12 @@
+data "terraform_remote_state" "global_outputs" {
+  backend = "s3"
+  config = {
+    bucket = "clipmarket-terraform-state" # 상태 파일이 저장된 S3 버킷
+    key    = "global/terraform.tfstate"  # global 환경의 상태 파일 경로
+    region = "ap-northeast-2"            # S3 버킷이 있는 리전
+  }
+}
+
 module "virginia_vpc" {
   source     = "../vpc_module"
   pjt_name   = var.virginia_pjt_name
@@ -20,8 +29,8 @@ module "virginia_instance" {
   subnets                               = var.virginia_subnets
   ingress_rule_config                   = var.virginia_ingress_rule_config
   egress_rule_config                    = var.virginia_egress_rule_config
-  # ssm_instance_profile_name_from_global = data.terraform_remote_state.global_outputs.outputs.ssm_instance_profile_name
-  ssm_instance_profile_name_from_global = "bastion-ssm-instance-profile"
+  ssm_instance_profile_name_from_global = data.terraform_remote_state.global_outputs.outputs.ssm_instance_profile_name
+  # ssm_instance_profile_name_from_global = "bastion-ssm-instance-profile"
   pub_asg_config                        = var.virginia_pub_asg_config
 
   providers = {
