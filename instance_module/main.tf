@@ -140,7 +140,7 @@ resource "aws_instance" "pri_bastion" {
   # key_name                    = aws_key_pair.pub_key.key_name
 
   tags = {
-    Name = "${var.pjt_name}-pri-bastion"
+    Name = "${var.pjt_name}-pri-bastion-${regex("-([a-z])-" , each.key)[0]}"
   }
 
   depends_on = [var.nat_gw]
