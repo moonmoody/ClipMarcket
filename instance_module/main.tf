@@ -130,10 +130,11 @@ resource "aws_security_group" "sg" {
 
 # bastion_ iam(SSManagedInstanceCore) 권한을 가진 instance 
 resource "aws_instance" "pri_bastion" {
+  for_each = local.pri_sub34_key_by_ids
   ami      = data.aws_ami.latest_linux.id
   instance_type               = "t3.small"
   associate_public_ip_address = false
-  subnet_id                   = local.pri_sub34_key_by_ids.pri-a-3
+  subnet_id                   = each.value
   vpc_security_group_ids      = [aws_security_group.sg["bastion"].id]
   iam_instance_profile        = var.ssm_instance_profile_name_from_global
   # key_name                    = aws_key_pair.pub_key.key_name
