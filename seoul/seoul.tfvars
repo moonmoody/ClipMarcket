@@ -57,8 +57,8 @@ seoul_ingress_rule_config = {
   #   "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
   # }
   aurora = {
-    "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "proxy" },
-    "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "bastion" },
+    "mysql1" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "proxy" },
+    "mysql2" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "bastion" },
   }
   lambda = {
     "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "10.10.0.0/16" }
