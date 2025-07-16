@@ -1,0 +1,46 @@
+name: Terraform CI/CD (global)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'global/**'          # global 디렉토리 변경 시에만 실행
+
+permissions:
+  id-token: write           # OIDC 토큰 발급 허용
+  contents: read
+
+jobs:
+  terraform:
+    name: Terraform Deploy - Global
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: global   # 여기서 실행됨
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::076056289026:role/githubAction_terraform
+          aws-region: ap-northeast-2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan
+
+      - name: Terraform Apply (main branch only)
+        if: github.ref == 'refs/heads/main'
+        run: terraform apply -auto-approve
