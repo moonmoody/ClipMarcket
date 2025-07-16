@@ -39,6 +39,7 @@ locals {
   pri_subnet_ids = values(var.pri_sub34_ids_by_az)  # ALB에 넣을 list(string)
 }
 
+# locals for security group keys
 locals {
   # ingress와 egress에 있는 모든 key
   all_sg_keys = toset(concat(
@@ -54,10 +55,10 @@ resource "aws_key_pair" "pub_key" {
   public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCA1wGQwHj1YsyndGjKZzDWU/lbwhiisVg11U7o3XFkjoV57M207pMjVdk0cGdismABfpq1amJrZ6P+QSzKqu+FHdebZar8C+oe1iwGgJwol5+IPt1vTmryYG+1XoAvmJNZjzY56WlmIZLYmG+VybHGd/OItO6hES/KjHP5FRnTptO1v77nb/EXUfA/WyJPr47Fb9y70jxSt+/0T4Hv397ZLVpenTWN59O8VI5ekjMyWIBwkxL9liFq2EJyTgJKy6dL3VBAQnDh4Ouh2oflD6pwbSD3HLwbDFHh/ChHi97TZ6mvO5bj3EzBP5Nwg5tSSjUosI89GDdnuu+4vv/ubRjn rsa-key-20250629"
 }
 
-resource "aws_key_pair" "pri_key" {
-  key_name   = "pri-key"
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC2tdliuf5tpkg8s9ZZ+hcrLG2rrM5J7452CeNNHJ5OV6UGAy+yCnIhRRtL+tUEkypRzJ6j5v2uxyaUgZ45OmIoxR25lrN7JGxY3K7JWnfDhwWc5CSt9L2cmmMfqr/+Okbb+HnFH538syzDqaE2hiuVTIjVCa4gpTbpBn0JLF2ShfMkB8nXsS0ezvRAOAh1bd5CENYRlndytjboEbB5xQPECJLscWFbsDi3Ys0suqxgKTm1c7ftlhv5cXmCSczNxravz41+T7k+GqhePgKGap/KShDB7nMlu8qgtUqLxaHRBRouClvs0yj3DAKFkJLvThOPV4TmWEtBLgQKCd4SQk3T rsa-key-20250708"
-}
+# resource "aws_key_pair" "pri_key" {
+#   key_name   = "pri-key"
+#   public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC2tdliuf5tpkg8s9ZZ+hcrLG2rrM5J7452CeNNHJ5OV6UGAy+yCnIhRRtL+tUEkypRzJ6j5v2uxyaUgZ45OmIoxR25lrN7JGxY3K7JWnfDhwWc5CSt9L2cmmMfqr/+Okbb+HnFH538syzDqaE2hiuVTIjVCa4gpTbpBn0JLF2ShfMkB8nXsS0ezvRAOAh1bd5CENYRlndytjboEbB5xQPECJLscWFbsDi3Ys0suqxgKTm1c7ftlhv5cXmCSczNxravz41+T7k+GqhePgKGap/KShDB7nMlu8qgtUqLxaHRBRouClvs0yj3DAKFkJLvThOPV4TmWEtBLgQKCd4SQk3T rsa-key-20250708"
+# }
 
 
 # Security Group Create with dynamic ingress/egress rules
@@ -106,74 +107,14 @@ resource "aws_security_group" "sg" {
 #   vpc_security_group_ids      = data.aws_region.current.id == "ap-northeast-2" ? [aws_security_group.sg["proxy"].id] : []
 #   # key_name                    = aws_key_pair.pri_key.key_name
 #   user_data = <<-EOF
-#                   #!/bin/bash
-#                   set -e
-#                   sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
-#                   systemctl restart sshd
-#                   echo 'ec2-user:mypassword' | chpasswd
-#                   yum install -y python3-pip
-#                   pip3 install flask pymysql
-
-#                   cat << 'EOF_PYTHON_SCRIPT' > /home/ec2-user/proxy_server.py
-#                   from flask import Flask, request, jsonify
-#                   import pymysql
-#                   import json
-#                   import os
-
-#                   app = Flask(__name__)
-
-#                   # --- DB 정보 (환경 변수) ---
-#                   db_host = os.environ.get("DB_HOST")
-#                   db_user = os.environ.get("DB_USER")
-#                   db_password = os.environ.get("DB_PASSWORD")
-#                   db_name = os.environ.get("DB_NAME")
-
-#                   def get_db_connection():
-#                       """요청마다 새로운 DB 커넥션을 생성하여 반환"""
-#                       return pymysql.connect(
-#                           host=db_host, user=db_user, password=db_password,
-#                           database=db_name, autocommit=True, cursorclass=pymysql.cursors.DictCursor
-#                       )
-
-#                   @app.route("/api/rekognition-result", methods=["POST"])
-#                   def save_result():
-#                       data = request.get_json()
-#                       if not data or not data.get("image") or not data.get("labels"):
-#                           return jsonify({"error": "Missing required fields"}), 400
-
-#                       connection = None
-#                       try:
-#                           connection = get_db_connection()
-#                           with connection.cursor() as cursor:
-#                               sql = "INSERT INTO image_analysis (image_key, labels) VALUES (%s, %s)"
-#                               cursor.execute(sql, (data["image"], json.dumps(data["labels"])))
-#                           return jsonify({"message": "Saved"}), 200
-#                       except Exception as e:
-#                           print(f"ERROR: DB Error - {e}")
-#                           return jsonify({"error": str(e)}), 500
-#                       finally:
-#                           if connection:
-#                               connection.close()
-
-#                   if __name__ == "__main__":
-#                       app.run(host="0.0.0.0", port=8080)
-#                   EOF_PYTHON_SCRIPT
-
-#                   chown ec2-user:ec2-user /home/ec2-user/proxy_server.py
-
-#                   # 4. 환경 변수 설정
-#                   cat << 'EOF_ENV' >> /home/ec2-user/.bashrc
-#                   export DB_HOST="virginia-db.global-gzu281l4xzib.global.rds.amazonaws.com"
-#                   export DB_USER="admin"
-#                   export DB_PASSWORD="tmdrbs159!"
-#                   export DB_NAME="clipmarket_db"
-#                   EOF_ENV
-
-#                   chown ec2-user:ec2-user /home/ec2-user/.bashrc
-
-#                   # 5. 애플리케이션 실행 (핵심 수정 사항)
-#                   sudo -u ec2-user bash -i -c "nohup python3 /home/ec2-user/proxy_server.py > /home/ec2-user/app.log 2>&1 &"
-#                 EOF
+#               #!/bin/bash
+#               # SSH 비밀번호 인증 활성화
+#               sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+#               # sshd 서비스 재시작하여 변경사항 적용
+#               systemctl restart sshd
+#               # ec2-user의 비밀번호 설정
+#               echo 'ec2-user:mypassword' | chpasswd
+#               EOF
 #   # user_data = <<-EOF
 #   #             #!/bin/bash
 #   #             aws s3 cp s3://my-bucket/my_key.pem /home/ec2-user/my_key.pem
@@ -189,18 +130,17 @@ resource "aws_security_group" "sg" {
 
 # bastion_ iam(SSManagedInstanceCore) 권한을 가진 instance 
 resource "aws_instance" "pri_bastion" {
+  for_each = local.pri_sub34_key_by_ids
   ami      = data.aws_ami.latest_linux.id
   instance_type               = "t3.small"
   associate_public_ip_address = false
-  subnet_id                   = local.pri_sub34_key_by_ids.pri-a-3
+  subnet_id                   = each.value
   vpc_security_group_ids      = [aws_security_group.sg["bastion"].id]
-  # 추후에 global에서 가져와서 주입하는 형식으로 수정 필요.
-  # iam_instance_profile        = aws_iam_instance_profile.ssm_instance_profile.name
-  # iam_instance_profile        = var.ssm_instance_profile_name_from_global
+  iam_instance_profile        = var.ssm_instance_profile_name_from_global
   # key_name                    = aws_key_pair.pub_key.key_name
 
   tags = {
-    Name = "${var.pjt_name}-pri-bastion"
+    Name = "${var.pjt_name}-pri-bastion-${regex("-([a-z])-" , each.key)[0]}"
   }
 
   depends_on = [var.nat_gw]
@@ -219,7 +159,7 @@ resource "aws_instance" "pri_bastion" {
 # }
 
 
-# Create Listener
+# # Create Listener
 # resource "aws_lb_listener" "pub_web_alb_listener" {
 #   load_balancer_arn = aws_lb.pub_alb.arn
 #   port              = "80"
@@ -231,7 +171,7 @@ resource "aws_instance" "pri_bastion" {
 #   }
 # }
 
-# Create alb for Public Subnet
+# # Create alb for Public Subnet
 # resource "aws_lb" "pub_alb" {
 #   name               = "${var.pjt_name}-pub-alb"
 #   internal           = false                                
@@ -246,7 +186,7 @@ resource "aws_instance" "pri_bastion" {
 #   }
 # }
 
-# ALB Security Group
+# # ALB Security Group
 # resource "aws_security_group" "pub_alb_sg" {
 #   name        = "${var.pjt_name}-sg-pub-alb"
 #   vpc_id      = var.vpc_id
@@ -296,6 +236,7 @@ resource "aws_instance" "pri_bastion" {
 #   port             = 80
 # }
 
+
 # locals {
 #   listeners = {
 #     http = {
@@ -319,12 +260,10 @@ resource "aws_instance" "pri_bastion" {
 # data "aws_acm_certificate" "my_cert" {
 #   provider = aws.us-east-1
 #   # 내 도메인 이름을 여기에 입력합니다.
-#   # domain      = "www.dck.world"
 #   domain      = "www.clip503.cloud"
   
 #   # 가장 일반적으로 사용되는 검증 상태 필터
-#   # statuses    = ["ISSUED"] 
-#   statuses    = ["ISSUED", "PENDING_VALIDATION"]
+#   statuses    = ["ISSUED"] 
 #   most_recent = true
 # }
 
@@ -338,6 +277,18 @@ resource "aws_instance" "pri_bastion" {
 #   protocol          = each.value.protocol
 
 #   certificate_arn   = each.value.protocol == "HTTPS" ? data.aws_acm_certificate.my_cert.arn : null
+
+#   default_action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.pri_tg[0].arn
+#   }
+# }
+
+# resource "aws_lb_listener" "pri_alb_listener" {
+#   count = data.aws_region.current.id == "ap-northeast-2" ? 1 : 0
+#   load_balancer_arn = aws_lb.pri_alb[0].arn
+#   port              = "80"
+#   protocol          = "HTTP"
 
 #   default_action {
 #     type             = "forward"
@@ -393,7 +344,7 @@ resource "aws_instance" "pri_bastion" {
 #   }
 # }
 
-# Launch Template
+# # Launch Template
 # resource "aws_launch_template" "pub_lt" {
 #   name_prefix   = "${var.pjt_name}-pub-"
 #   image_id      = data.aws_ami.latest_linux.id
@@ -415,7 +366,7 @@ resource "aws_instance" "pri_bastion" {
 #   depends_on = [var.nat_gw]
 # }
 
-# Auto Scaling
+# # Auto Scaling
 # resource "aws_autoscaling_group" "pub_asg" {
 #   for_each = local.pub_sub_key_by_ids
 #   name                = "${var.pjt_name}-pub-asg-${regex("-([a-z])-" , each.key)[0]}"
