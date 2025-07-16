@@ -13,4 +13,11 @@ output pri_subnet_ids {
   value       = local.pri_subnet_ids
 }
 
+output ingress_rules {
+  value       = local.ingress_rules
+}
+output egress_rules {
+  value       = local.egress_rules
+}
+
 

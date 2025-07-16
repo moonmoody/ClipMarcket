@@ -46,6 +46,36 @@ locals {
     keys(var.ingress_rule_config),
     keys(var.egress_rule_config)
   ))
+
+  # Ingress 규칙을 aws_security_group_rule 리소스에 맞게 평탄화 (null 처리 보완)
+  ingress_rules = flatten([
+    for sg_key, rules in var.ingress_rule_config : [
+      for rule_key, rule in (rules != null ? rules : {}) : {
+        sg_key    = sg_key
+        rule_key  = rule_key
+        protocol  = rule.protocol
+        from_port = rule.from_port
+        to_port   = rule.to_port
+        cidr_blocks = try(rule.cidr, null) != null ? [rule.cidr] : null
+        source_security_group_key = try(rule.source_sg_key, null)
+      }
+    ]
+  ])
+
+  # Egress 규칙도 동일하게 수정
+  egress_rules = flatten([
+    for sg_key, rules in var.egress_rule_config : [
+      for rule_key, rule in (rules != null ? rules : {}) : {
+        sg_key    = sg_key
+        rule_key  = rule_key
+        protocol  = rule.protocol
+        from_port = rule.from_port
+        to_port   = rule.to_port
+        cidr_blocks = try(rule.cidr, null) != null ? [rule.cidr] : null
+        source_security_group_key = try(rule.source_sg_key, null)
+      }
+    ]
+  ])
 }
 
 
@@ -61,39 +91,80 @@ resource "aws_key_pair" "pub_key" {
 # }
 
 
+# resource "aws_security_group" "sg" {
+#   for_each = local.all_sg_keys
+#   name     = "sg_${each.key}"
+#   vpc_id   = var.vpc_id
+
+#   dynamic "ingress" {
+#     # vigrinia 에 proxy = null 이 들어가는 현상이 있어서..
+#     for_each = var.ingress_rule_config[each.key] != null ? var.ingress_rule_config[each.key] : {}
+#     content {
+#       # from_port와 to_port가 정의되지 않은 경우 기본값 0을 사용
+#       from_port   = lookup(ingress.value, "from_port", 0)
+#       to_port     = lookup(ingress.value, "to_port", 0)
+#       protocol    = ingress.value.protocol
+#       cidr_blocks = ingress.value.cidr != null ? [ingress.value.cidr] : null
+#       source_security_group_id = ingress.value.source_sg_key != null ? aws_security_group.sg[ingress.value.source_sg_key].id : null
+#     }
+#   }
+
+#   dynamic "egress" {
+#     for_each = var.egress_rule_config[each.key] != null ? var.egress_rule_config[each.key] : {}
+#     content {
+#       from_port   = lookup(egress.value, "from_port", 0)
+#       to_port     = lookup(egress.value, "to_port", 0)
+#       protocol    = egress.value.protocol
+#       cidr_blocks = egress.value.cidr != null ? [egress.value.cidr] : null
+#       source_security_group_id = egress.value.source_sg_key != null ? aws_security_group.sg[egress.value.source_sg_key].id : null
+#     }
+#   }
+
+#   tags = {
+#     Name = "${var.pjt_name}-sg-${each.key}"
+#   }
+# }
+
 resource "aws_security_group" "sg" {
   for_each = local.all_sg_keys
   name     = "sg_${each.key}"
   vpc_id   = var.vpc_id
 
-  dynamic "ingress" {
-    # vigrinia 에 proxy = null 이 들어가는 현상이 있어서..
-    for_each = var.ingress_rule_config[each.key] != null ? var.ingress_rule_config[each.key] : {}
-    content {
-      # from_port와 to_port가 정의되지 않은 경우 기본값 0을 사용
-      from_port   = lookup(ingress.value, "from_port", 0)
-      to_port     = lookup(ingress.value, "to_port", 0)
-      protocol    = ingress.value.protocol
-      cidr_blocks = ingress.value.cidr != null ? [ingress.value.cidr] : null
-      source_security_group_id = ingress.value.source_sg_key != null ? aws_security_group.sg[ingress.value.source_sg_key].id : null
-    }
-  }
-
-  dynamic "egress" {
-    for_each = var.egress_rule_config[each.key] != null ? var.egress_rule_config[each.key] : {}
-    content {
-      from_port   = lookup(egress.value, "from_port", 0)
-      to_port     = lookup(egress.value, "to_port", 0)
-      protocol    = egress.value.protocol
-      cidr_blocks = egress.value.cidr != null ? [egress.value.cidr] : null
-      source_security_group_id = egress.value.source_sg_key != null ? aws_security_group.sg[egress.value.source_sg_key].id : null
-    }
-  }
-
   tags = {
     Name = "${var.pjt_name}-sg-${each.key}"
   }
 }
+
+# Ingress 규칙들을 별도의 리소스로 생성
+resource "aws_security_group_rule" "ingress" {
+  for_each = { for i, rule in local.ingress_rules : "${rule.sg_key}-${rule.rule_key}" => rule }
+
+  type              = "ingress"
+  security_group_id = aws_security_group.sg[each.value.sg_key].id
+  
+  protocol    = each.value.protocol
+  from_port   = each.value.from_port
+  to_port     = each.value.to_port
+  
+  cidr_blocks = each.value.cidr_blocks
+  source_security_group_id = each.value.source_security_group_key != null ? aws_security_group.sg[each.value.source_security_group_key].id : null
+}
+
+# Egress 규칙들을 별도의 리소스로 생성
+resource "aws_security_group_rule" "egress" {
+  for_each = { for i, rule in local.egress_rules : "${rule.sg_key}-${rule.rule_key}" => rule }
+
+  type              = "egress"
+  security_group_id = aws_security_group.sg[each.value.sg_key].id
+
+  protocol    = each.value.protocol
+  from_port   = each.value.from_port
+  to_port     = each.value.to_port
+
+  cidr_blocks = each.value.cidr_blocks
+  source_security_group_id = each.value.source_security_group_key != null ? aws_security_group.sg[each.value.source_security_group_key].id : null
+}
+
 
 
 # Seoul 리전에서만 생성.
