@@ -64,31 +64,43 @@ variable "egress_rule_config" {
       protocol  = string
       from_port = number
       to_port   = number
-      cidr      = string
+      cidr      = optional(string)
+      source_sg_key  = optional(string)
     }))
     proxy = optional(map(object({
       protocol  = string
       from_port = number
       to_port   = number
-      cidr      = string
+      cidr      = optional(string)
+      source_sg_key  = optional(string)
     })))
     bastion = optional(map(object({
       protocol  = string
       from_port = number
       to_port   = number
-      cidr      = string
+      cidr      = optional(string)
+      source_sg_key  = optional(string)
     })))
     aurora = optional(map(object({
       protocol  = string
       from_port = number
       to_port   = number
-      cidr      = string
+      cidr      = optional(string)
+      source_sg_key  = optional(string)
     })))
     lambda = optional(map(object({
       protocol  = string
       from_port = number
       to_port   = number
-      cidr      = string
+      cidr      = optional(string)
+      source_sg_key  = optional(string)
+    })))
+    task = optional(map(object({
+      protocol  = string
+      from_port = number
+      to_port   = number
+      cidr      = optional(string)
+      source_sg_key  = optional(string)
     })))
   })
 }

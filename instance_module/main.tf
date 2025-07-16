@@ -61,7 +61,6 @@ resource "aws_key_pair" "pub_key" {
 # }
 
 
-# Security Group Create with dynamic ingress/egress rules
 resource "aws_security_group" "sg" {
   for_each = local.all_sg_keys
   name     = "sg_${each.key}"
@@ -75,7 +74,8 @@ resource "aws_security_group" "sg" {
       from_port   = lookup(ingress.value, "from_port", 0)
       to_port     = lookup(ingress.value, "to_port", 0)
       protocol    = ingress.value.protocol
-      cidr_blocks = [ingress.value.cidr]
+      cidr_blocks = ingress.value.cidr != null ? [ingress.value.cidr] : null
+      source_security_group_id = ingress.value.source_sg_key != null ? aws_security_group.sg[ingress.value.source_sg_key].id : null
     }
   }
 
@@ -85,7 +85,8 @@ resource "aws_security_group" "sg" {
       from_port   = lookup(egress.value, "from_port", 0)
       to_port     = lookup(egress.value, "to_port", 0)
       protocol    = egress.value.protocol
-      cidr_blocks = [egress.value.cidr]
+      cidr_blocks = egress.value.cidr != null ? [egress.value.cidr] : null
+      source_security_group_id = egress.value.source_sg_key != null ? aws_security_group.sg[egress.value.source_sg_key].id : null
     }
   }
 

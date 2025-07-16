@@ -56,6 +56,9 @@ seoul_ingress_rule_config = {
   lambda = {
       "all" = { protocol = "-1", from_port = 0, to_port = 0, cidr = "0.0.0.0/0" }
   }
+  task = {
+      "all" = { protocol = "-1", from_port = 0, to_port = 0, source_sg_key = "proxy" }
+  }
 }
 seoul_egress_rule_config = {
   pub = {
@@ -81,6 +84,9 @@ seoul_egress_rule_config = {
     "all" = { protocol = "-1", from_port = 0, to_port = 0, cidr = "0.0.0.0/0" }
   }
   lambda = {
+      "all" = { protocol = "-1", from_port = 0, to_port = 0, cidr = "0.0.0.0/0" }
+  }
+  task = {
       "all" = { protocol = "-1", from_port = 0, to_port = 0, cidr = "0.0.0.0/0" }
   }
 }
