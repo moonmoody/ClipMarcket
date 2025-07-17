@@ -43,7 +43,7 @@ seoul_ingress_rule_config = {
   proxy = {
     # "icmp"  = { protocol = "icmp", from_port = -1, to_port = -1, cidr = "0.0.0.0/0" },
     # "http"  = { protocol = "tcp", from_port = "80", to_port = "80", cidr = "0.0.0.0/0" },
-    "https" = { protocol = "tcp", from_port = "443", to_port = "443", cidr = "0.0.0.0/0" },
+    # "https" = { protocol = "tcp", from_port = "443", to_port = "443", cidr = "0.0.0.0/0" },
     # "ssh"   = { protocol = "tcp", from_port = "22", to_port = "22", cidr = "0.0.0.0/0" },
     "mysql1" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "task" },
     "mysql2" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "lambda" },
@@ -74,7 +74,7 @@ seoul_egress_rule_config = {
   # }
   proxy = {
     # "http"  = { protocol = "tcp", from_port = "80", to_port = "80", cidr = "0.0.0.0/0" },
-    "https" = { protocol = "tcp", from_port = "443", to_port = "443", cidr = "0.0.0.0/0" },
+    # "https" = { protocol = "tcp", from_port = "443", to_port = "443", cidr = "0.0.0.0/0" },
     # "ssh"   = { protocol = "tcp", from_port = "22", to_port = "22", cidr = "0.0.0.0/0" },
     "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "aurora" },
     # "tcp8080" = { protocol = "tcp", from_port = "8080", to_port = "8080", cidr = "0.0.0.0/0" }
@@ -88,7 +88,8 @@ seoul_egress_rule_config = {
   }
   # aurora = null
   aurora = {
-    "all" = { protocol = "-1", from_port = 0, to_port = 0, cidr = "0.0.0.0/0" }
+    # "all" = { protocol = "-1", from_port = 0, to_port = 0, cidr = "0.0.0.0/0" }
+    "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "proxy" }
   }
   lambda = {
     "https" = { protocol = "tcp", from_port = "443", to_port = "443", cidr = "0.0.0.0/0" },
