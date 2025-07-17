@@ -62,11 +62,12 @@ seoul_ingress_rule_config = {
   # lambda = {
   #   "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "0.0.0.0/0" }
   # }
-  task = {
-      "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "10.10.0.0/16" },
-      # "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "proxy" },
-      "https" = { protocol = "tcp", from_port = "443", to_port = "443", cidr = "0.0.0.0/0" }
-  }
+  task = null
+  # task = {
+  #     "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "10.10.0.0/16" },
+  #     # "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "proxy" },
+  #     "https" = { protocol = "tcp", from_port = "443", to_port = "443", cidr = "0.0.0.0/0" }
+  # }
 }
 seoul_egress_rule_config = {
   # pub = {
