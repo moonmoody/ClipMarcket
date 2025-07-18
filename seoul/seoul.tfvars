@@ -57,6 +57,7 @@ seoul_ingress_rule_config = {
   aurora = {
     "mysql1" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "proxy" },
     "mysql2" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "bastion" },
+    "mysql3" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "lambda" },
   }
   lambda = null
   # lambda = {
@@ -90,11 +91,15 @@ seoul_egress_rule_config = {
   # aurora = null
   aurora = {
     # "all" = { protocol = "-1", from_port = 0, to_port = 0, cidr = "0.0.0.0/0" }
-    "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "proxy" }
+    "mysql1" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "proxy" },
+    "mysql2" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "bastion" },
+    "mysql3" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "lambda" },
   }
   lambda = {
     "https" = { protocol = "tcp", from_port = "443", to_port = "443", cidr = "0.0.0.0/0" },
-    "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "proxy" }
+    "mysql1" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "proxy" },
+    "mysql2" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "10.10.50.0/24" },
+    "mysql3" = { protocol = "tcp", from_port = "3306", to_port = "3306", cidr = "10.10.60.0/24" },
   }
   task = {
     "mysql" = { protocol = "tcp", from_port = "3306", to_port = "3306", source_sg_key = "proxy" },
