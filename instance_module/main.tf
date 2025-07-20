@@ -39,7 +39,7 @@ locals {
   pri_subnet_ids = values(var.pri_sub34_ids_by_az)  # ALB에 넣을 list(string)
 }
 
-# locals for security group keys
+
 locals {
   # ingress와 egress에 있는 모든 key
   all_sg_keys = toset(concat(
@@ -47,7 +47,7 @@ locals {
     keys(var.egress_rule_config)
   ))
 
-  # Ingress 규칙을 aws_security_group_rule 리소스에 맞게 평탄화 (null 처리 보완)
+  # Ingress 규칙
   ingress_rules = flatten([
     for sg_key, rules in var.ingress_rule_config : [
       for rule_key, rule in (rules != null ? rules : {}) : {
@@ -62,7 +62,7 @@ locals {
     ]
   ])
 
-  # Egress 규칙도 동일하게 수정
+  # Egress 규칙
   egress_rules = flatten([
     for sg_key, rules in var.egress_rule_config : [
       for rule_key, rule in (rules != null ? rules : {}) : {
@@ -80,10 +80,10 @@ locals {
 
 
 # 프록시 서버 키페어는 없어도 무방함
-resource "aws_key_pair" "pub_key" {
-  key_name   = "pub-key"
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCA1wGQwHj1YsyndGjKZzDWU/lbwhiisVg11U7o3XFkjoV57M207pMjVdk0cGdismABfpq1amJrZ6P+QSzKqu+FHdebZar8C+oe1iwGgJwol5+IPt1vTmryYG+1XoAvmJNZjzY56WlmIZLYmG+VybHGd/OItO6hES/KjHP5FRnTptO1v77nb/EXUfA/WyJPr47Fb9y70jxSt+/0T4Hv397ZLVpenTWN59O8VI5ekjMyWIBwkxL9liFq2EJyTgJKy6dL3VBAQnDh4Ouh2oflD6pwbSD3HLwbDFHh/ChHi97TZ6mvO5bj3EzBP5Nwg5tSSjUosI89GDdnuu+4vv/ubRjn rsa-key-20250629"
-}
+# resource "aws_key_pair" "pub_key" {
+#   key_name   = "pub-key"
+#   public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCA1wGQwHj1YsyndGjKZzDWU/lbwhiisVg11U7o3XFkjoV57M207pMjVdk0cGdismABfpq1amJrZ6P+QSzKqu+FHdebZar8C+oe1iwGgJwol5+IPt1vTmryYG+1XoAvmJNZjzY56WlmIZLYmG+VybHGd/OItO6hES/KjHP5FRnTptO1v77nb/EXUfA/WyJPr47Fb9y70jxSt+/0T4Hv397ZLVpenTWN59O8VI5ekjMyWIBwkxL9liFq2EJyTgJKy6dL3VBAQnDh4Ouh2oflD6pwbSD3HLwbDFHh/ChHi97TZ6mvO5bj3EzBP5Nwg5tSSjUosI89GDdnuu+4vv/ubRjn rsa-key-20250629"
+# }
 
 # resource "aws_key_pair" "pri_key" {
 #   key_name   = "pri-key"
@@ -125,6 +125,8 @@ resource "aws_key_pair" "pub_key" {
 #   }
 # }
 
+
+# Security Group 리소스 생성
 resource "aws_security_group" "sg" {
   for_each = local.all_sg_keys
   name     = "sg_${each.key}"
@@ -199,6 +201,7 @@ resource "aws_security_group_rule" "egress" {
 
 #   depends_on = [var.nat_gw]
 # }
+
 
 # bastion_ iam(SSManagedInstanceCore) 권한을 가진 instance 
 resource "aws_instance" "pri_bastion" {
