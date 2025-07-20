@@ -26,17 +26,17 @@ locals {
   }
  
   # AZ별로 1개씩만 고르기 (예: 2a, 2c 중복 제거)
-  pub_subnet_ids_by_az = {
-    for az, pair in {
-      for key, id in local.pub_sub_key_by_ids : var.subnets[key].az => {
-        key = key
-        id  = id
-      }
-    } : az => pair.id
-  }
-  pub_subnet_ids = values(local.pub_subnet_ids_by_az)  # ALB에 넣을 list(string)
+  # pub_subnet_ids_by_az = {
+  #   for az, pair in {
+  #     for key, id in local.pub_sub_key_by_ids : var.subnets[key].az => {
+  #       key = key
+  #       id  = id
+  #     }
+  #   } : az => pair.id
+  # }
+  # pub_subnet_ids = values(local.pub_subnet_ids_by_az)  # ALB에 넣을 list(string)
 
-  pri_subnet_ids = values(var.pri_sub34_ids_by_az)  # ALB에 넣을 list(string)
+  # pri_subnet_ids = values(var.pri_sub34_ids_by_az)  # ALB에 넣을 list(string)
 }
 
 
